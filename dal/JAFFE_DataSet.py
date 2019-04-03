@@ -4,28 +4,40 @@ from PIL import Image
 import numpy as np
 import torch.utils.data as data
 
-
 class JAFFE(data.Dataset):
     """`JAFFE Dataset.
     Args:
         is_train (bool, optional): If True, creates dataset from training set, otherwise creates from test set.
         transform (callable, optional): A function/transform that  takes in an PIL image and returns a transformed version.
                                         E.g, ``transforms.RandomCrop``
+        target_type(str, optional): Use for target type: "fa" for "float array", "ls" for "long single"
+                                    E.g, ``MSELoss will use fa``; ``CrossEntropyLoss will use ls``
 
         there are NEU:30 HAP:31 SAD:31 SUR:30 ANG:30 DIS:29 FEA:32 images in data with ten people
         we choose images of 9 people, whose name is in self.train_people_names, for training
         we choose images of 1 person, whose name is in self.test_people_names, for testing
     """
 
-    def __init__(self, is_train=True, transform=None):
-        self.classes_map = {'NE': np.array([1., 0., 0., 0., 0., 0., 0.]),
-                            'HA': np.array([0., 1., 0., 0., 0., 0., 0.]),
-                            'SA': np.array([0., 0., 1., 0., 0., 0., 0.]),
-                            'SU': np.array([0., 0., 0., 1., 0., 0., 0.]),
-                            'AN': np.array([0., 0., 0., 0., 1., 0., 0.]),
-                            'DI': np.array([0., 0., 0., 0., 0., 1., 0.]),
-                            'FE': np.array([0., 0., 0., 0., 0., 0., 1.])}
-        self.img_dir_pre_path = "data/jaffe"
+    def __init__(self, is_train=True, transform=None, target_type="fa", img_dir_pre_path="data/jaffe"):
+        if target_type == "fa":
+            self.classes_map = {'NE': np.array([1., 0., 0., 0., 0., 0., 0.], dtype=float),
+                                'HA': np.array([0., 1., 0., 0., 0., 0., 0.], dtype=float),
+                                'SA': np.array([0., 0., 1., 0., 0., 0., 0.], dtype=float),
+                                'SU': np.array([0., 0., 0., 1., 0., 0., 0.], dtype=float),
+                                'AN': np.array([0., 0., 0., 0., 1., 0., 0.], dtype=float),
+                                'DI': np.array([0., 0., 0., 0., 0., 1., 0.], dtype=float),
+                                'FE': np.array([0., 0., 0., 0., 0., 0., 1.], dtype=float)}
+        elif target_type == "ls":
+            self.classes_map = {'NE': 0,
+                                'HA': 1,
+                                'SA': 2,
+                                'SU': 3,
+                                'AN': 4,
+                                'DI': 5,
+                                'FE': 6}
+        else:
+            assert("target_type should be 'fa' or 'ls', but input is %s" % (target_type))
+        self.img_dir_pre_path = img_dir_pre_path
         self.train_people_names = ['MK', 'UY', 'KL', 'NM', 'YM', 'TM', 'KR', 'NA', 'KM']
         self.test_people_names = ['KA']
         self.transform = transform
@@ -89,6 +101,10 @@ class JAFFE(data.Dataset):
 
 
 if __name__ == "__main__":
-    j1 = JAFFE(True, None)
-    j2 = JAFFE(False, None)
+    j1 = JAFFE(is_train=True, img_dir_pre_path="../data/jaffe")
+    j2 = JAFFE(is_train=False, img_dir_pre_path="../data/jaffe")
     print(j1.__len__(), j2.__len__())
+
+    from utils.utils import draw_pic
+    draw_pic(j1.__getitem__(0)[0])
+    draw_pic(j2.__getitem__(0)[0])

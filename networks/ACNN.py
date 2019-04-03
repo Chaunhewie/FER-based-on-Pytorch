@@ -1,50 +1,53 @@
 # coding=utf-8
 import torch.nn as nn
-import torch.nn.functional as F
 
+'''
+假设输入为 W*W 大小的图片
+核 Kernal = F*F
+步长 Stride = S
+填充 padding = P
+输出图片的大小为 N*N  N = (W-F+2P)/S + 1
+                    W = (N-1)*S-2P+F
+'''
 
 class ACNN(nn.Module):
     def __init__(self, n_classes):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACNN, self).__init__()
-
-        # kernel
-        # 1 input image channel, 10 output channels, 5x5 square convolution
-        self.conv1 = nn.Conv2d(1, 10, 5)
-        # 10 input image channel, 10 output channels, 5x5 square convolution
-        self.conv2 = nn.Conv2d(10, 10, 5)
-        # 10 input image channel, 10 output channels, 3x3 square convolution
-        self.conv3 = nn.Conv2d(10, 10, 3)
-
-        # an affine operation: y = Wx + b
-        self.fc1 = nn.Linear(10 * 3 * 3, 64)
-        self.fc2 = nn.Linear(64, 16)
-        self.fc3 = nn.Linear(16, n_classes)
-
-        self.softmax = nn.Softmax(1)
+        self.input_size = 48
+        # x size [BATCHSIZE, 1, 48, 48]
+        self.features = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=10, kernel_size=5),   # 10, 44, 44
+            nn.ReLU(inplace=True),
+            nn.AvgPool2d(kernel_size=2),      # 10, 22, 22
+            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=5),  # 10, 18, 18
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2),      # 10, 9, 9
+            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3),  # 10, 7, 7
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2),      # 10, 3, 3
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(10 * 3 * 3, 64),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(64, 16),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(16, n_classes),
+            nn.LogSoftmax(1),
+        )
 
     def forward(self, x):
-        # x size [BATCHSIZE, 1, 48, 48]
-        # print("0:", x.size())
-        x = F.avg_pool2d(F.relu(self.conv1(x)), (2, 2))  # x size [BATCHSIZE, 10, 22, 22]
-        # print("1:", x.size())
-        x = F.max_pool2d(F.relu(self.conv2(x)), 2)  # x size [BATCHSIZE, 10, 9, 9]
-        # print("2:", x.size())
-        x = F.max_pool2d(F.relu(self.conv3(x)), 2)  # x size [BATCHSIZE, 10, 3, 3]
-        # print("3:", x.size())
-        # 这里做的就是压扁的操作 就是把后面的[BATCHSIZE, 10, 3, 3]压扁，变为 [4, 90]
+        # print(x.size())
+        x = self.features(x)
+        # print(x.size())
         x = x.view(-1, self.num_flat_features(x))
-        # print("3:", x.size())
-        # 输入为 144
-        x = F.relu(self.fc1(x))  # x size [BATCHSIZE, 64]
-        # print("11:", x.size())
-        x = F.relu(self.fc2(x))  # x size [BATCHSIZE, 16]
-        # print("12:", x.size())
-        x = self.fc3(x)  # x size [BATCHSIZE, n_classes]
-        # print("13:", x.size())
-        x = self.softmax(x)
+        # print(x.size())
+        x = self.classifier(x)
+        # print(x.size())
         return x
-
 
     def num_flat_features(self, x):
         size = x.size()[1:]  # all dimensions except the batch dimension
@@ -55,7 +58,6 @@ class ACNN(nn.Module):
 
 
 if __name__ == "__main__":
-    input_img_size = 48
     n_classes = 7
     net = ACNN(n_classes=n_classes)
     print(net)
