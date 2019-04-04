@@ -59,6 +59,7 @@ class ToTensor(object):
         Returns:
             Tensor: Converted image.
         """
+        # print(pic.size, "Pic ToTensor")
         return F.to_tensor(pic)
 
 

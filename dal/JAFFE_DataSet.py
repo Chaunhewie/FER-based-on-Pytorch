@@ -1,8 +1,14 @@
 # coding=utf-8
 import os
+import random
 from PIL import Image
 import numpy as np
 import torch.utils.data as data
+
+All_People_Names = ['KM', 'KL', 'KR', 'YM', 'UY', 'NA', 'NM', 'MK', 'KA', 'TM']
+# random.shuffle(All_People_Names)
+# print(All_People_Names)
+
 
 class JAFFE(data.Dataset):
     """`JAFFE Dataset.
@@ -10,15 +16,18 @@ class JAFFE(data.Dataset):
         is_train (bool, optional): If True, creates dataset from training set, otherwise creates from test set.
         transform (callable, optional): A function/transform that  takes in an PIL image and returns a transformed version.
                                         E.g, ``transforms.RandomCrop``
-        target_type(str, optional): Use for target type: "fa" for "float array", "ls" for "long single"
+        target_type (str, optional): Using for target type: "fa" for "float array", "ls" for "long single"
                                     E.g, ``MSELoss will use fa``; ``CrossEntropyLoss will use ls``
+        k_folder (int, optional): Using for split the dataset as train set and test set,
+                                  and len(test set):len(train set) = 1:(10-k_folder)
+        img_dir_pre_path (str, optional): The relative path of the data dictionary and main file
 
         there are NEU:30 HAP:31 SAD:31 SUR:30 ANG:30 DIS:29 FEA:32 images in data with ten people
         we choose images of 9 people, whose name is in self.train_people_names, for training
         we choose images of 1 person, whose name is in self.test_people_names, for testing
     """
 
-    def __init__(self, is_train=True, transform=None, target_type="fa", img_dir_pre_path="data/jaffe"):
+    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/jaffe"):
         if target_type == "fa":
             self.classes_map = {'NE': np.array([1., 0., 0., 0., 0., 0., 0.], dtype=float),
                                 'HA': np.array([0., 1., 0., 0., 0., 0., 0.], dtype=float),
@@ -38,10 +47,15 @@ class JAFFE(data.Dataset):
         else:
             assert("target_type should be 'fa' or 'ls', but input is %s" % (target_type))
         self.img_dir_pre_path = img_dir_pre_path
-        self.train_people_names = ['MK', 'UY', 'KL', 'NM', 'YM', 'TM', 'KR', 'NA', 'KM']
-        self.test_people_names = ['KA']
         self.transform = transform
         self.is_train = is_train  # train set or test set
+
+        split_index = int(len(All_People_Names)*k_folder/10)
+        if split_index < 1:
+            split_index = 1
+        self.train_people_names = All_People_Names[:-split_index]
+        self.test_people_names = All_People_Names[-split_index:]
+        # print(self.train_people_names, self.test_people_names)
 
         self.train_data = []
         self.train_data_num = 0
@@ -57,7 +71,7 @@ class JAFFE(data.Dataset):
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
                     if self.transform is not None:
                         img = self.transform(img)
-                    self.train_data.append(np.array(img))  # 256*256 的数据
+                    self.train_data.append(np.array(img))
                     self.train_classes.append(self.classes_map[img_file_name[3:5]])
 
         for person_name in self.test_people_names:
@@ -68,7 +82,7 @@ class JAFFE(data.Dataset):
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
                     if self.transform is not None:
                         img = self.transform(img)
-                    self.test_data.append(np.array(img))  # 256*256 的数据
+                    self.test_data.append(np.array(img))
                     self.test_classes.append(self.classes_map[img_file_name[3:5]])
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
 

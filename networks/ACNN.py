@@ -17,23 +17,22 @@ class ACNN(nn.Module):
         self.input_size = 48
         # x size [BATCHSIZE, 1, 48, 48]
         self.features = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=10, kernel_size=5),   # 10, 44, 44
+            nn.Conv2d(in_channels=1, out_channels=16, kernel_size=5),   # 6, 44, 44
             nn.ReLU(inplace=True),
-            nn.AvgPool2d(kernel_size=2),      # 10, 22, 22
-            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=5),  # 10, 18, 18
+            nn.MaxPool2d(kernel_size=2),      # 6, 22, 22
+            nn.Conv2d(in_channels=16, out_channels=128, kernel_size=5),  # 16, 18, 18
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2),      # 10, 9, 9
-            nn.Conv2d(in_channels=10, out_channels=10, kernel_size=3),  # 10, 7, 7
+            nn.MaxPool2d(kernel_size=2),      # 16, 9, 9
+            nn.Conv2d(in_channels=128, out_channels=64, kernel_size=3, padding=1),  # 64, 9, 9
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2),      # 10, 3, 3
+            nn.MaxPool2d(kernel_size=2),      # 64, 4, 4
+            nn.Conv2d(in_channels=64, out_channels=10, kernel_size=3, padding=1),  # 10, 4, 4
+            nn.ReLU(inplace=True),
+            nn.AvgPool2d(kernel_size=2),      # 10, 2, 2
         )
         self.classifier = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(10 * 3 * 3, 64),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(64, 16),
-            nn.ReLU(inplace=True),
+            nn.Linear(10 * 2 * 2, 16),
             nn.Dropout(),
             nn.Linear(16, n_classes),
             nn.LogSoftmax(1),

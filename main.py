@@ -1,4 +1,8 @@
 # coding=utf-8
+'''
+本文件是该项目的main文件，定义了各个训练参数，以及不同数据集，不同网络的选择；
+'''
+import os
 import torch
 import torch.optim
 from torch.autograd import Variable
@@ -9,29 +13,76 @@ import argparse
 from networks.ACNN import ACNN
 from networks.AlexNet import AlexNet
 from dal.JAFFE_DataSet import JAFFE
+from dal.CKPlus48_DataSet import CKPlus48
+from dal.FER2013_DataSet import FER2013
 import transforms.transforms
 import utils.utils as utils
 
 use_cuda = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if use_cuda else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
+enabled_nets = ["ACNN", "AlexNet"]
+enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
+
+# 模型选择
 # parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
-parser.add_argument('--model', type=str, default='AlexNet', help='CNN architecture')
-parser.add_argument('--dataset', type=str, default='JAFFE', help='dataset')
-parser.add_argument('--bs', default=128, type=int, help='batch_size')
+parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
+
+# 数据集选择
+# parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
+parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
+# parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
+# parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
+
+# Other Parameters
+# 存储的模型序号
+parser.add_argument('--save_number', default=1, type=int, help='save_number')
+# 批次大小
+parser.add_argument('--bs', default=32, type=int, help='batch_size')
+# 学习率
 parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
-parser.add_argument('--epoch', default=1, type=int, help='training epoch num')
-parser.add_argument('--lrd_se', default=500, type=int, help='learning rate decay start epoch')  # 表示默认从epoch为500开始进行lr的递减
-parser.add_argument('--lrd_s', default=20, type=int, help='learning rate decay step')  # 表示默认每经过2次epoch进行一次递减
-parser.add_argument('--lrd_r', default=0.9, type=float, help='learning rate decay rate')  # 表示每次的lr的递减率，默认每递减一次乘一次0.9
+# epoch
+parser.add_argument('--epoch', default=300, type=int, help='training epoch num')
+# 每次获得到更优的准确率后，会进行一次存储，此选项选择是否从上次存储位置继续
+parser.add_argument('--resume', default=False, type=bool, help='resume training from last checkpoint')
+# 表示默认从第 $lrd_se 次epoch开始进行lr的递减，应该小于 $jump_out_epoch
+parser.add_argument('--lrd_se', default=200, type=int, help='learning rate decay start epoch')
+# 表示默认每经过2次epoch进行一次递减
+parser.add_argument('--lrd_s', default=5, type=int, help='learning rate decay step')
+# 表示每次的lr的递减率，默认每递减一次乘一次0.9
+parser.add_argument('--lrd_r', default=0.9, type=float, help='learning rate decay rate')
 opt = parser.parse_args()
 
+train_acc_map = {'best_acc': 0, 'best_acc_epoch': -1, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+test_acc_map = {'best_acc': 0, 'best_acc_epoch': -1, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+Train_acc, Test_acc = 0., 0.
+
+
+print("------------Preparing Model...----------------")
 n_classes = 7
+net_to_save_dir = "Saved_Models"
+net_to_save_path = os.path.join(net_to_save_dir, opt.dataset + '_' + opt.model + "_" + str(opt.save_number))
+saved_model_name = 'Best_model.t7'
 if opt.model == "ACNN":
     net = ACNN(n_classes=n_classes).to(DEVICE)
 elif opt.model == "AlexNet":
     net = AlexNet(n_classes=n_classes).to(DEVICE)
+else:
+    assert("opt.model should be in %s, but got %s" % (enabled_nets, opt.model))
+if opt.resume:
+    # Load checkpoint.
+    print('==> Loading Model Parameters...')
+    assert os.path.isdir(net_to_save_path), 'Error: no checkpoint directory found!'
+    checkpoint = torch.load(os.path.join(net_to_save_path, saved_model_name))
+
+    net.load_state_dict(checkpoint['net'])
+    test_acc_map['best_acc'] = checkpoint['best_test_acc']
+    test_acc_map['best_acc_epoch'] = checkpoint['best_test_acc_epoch']
+    start_epoch = test_acc_map['best_acc_epoch'] + 1
+else:
+    start_epoch = 0
+print("------------Model Already be Prepared---------")
 
 input_img_size = net.input_size
 transform_train = transforms.Compose([
@@ -47,34 +98,41 @@ transform_test = transforms.Compose([
     transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
 ])
 
-# criterion = nn.MSELoss()
-# target_type = 'fa'
-criterion = nn.CrossEntropyLoss()
-target_type = 'ls'
+# criterion, target_type = nn.MSELoss(), 'fa'
+criterion, target_type = nn.CrossEntropyLoss(), 'ls'
 # 随机梯度下降
 optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=5e-4)
-
-train_acc_map = {'best_acc': 0, 'best_acc_epoch': -1, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
-test_acc_map = {'best_acc': 0, 'best_acc_epoch': -1, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+# Adam 优化
+# optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=5e-4)
 
 print("------------Preparing Data...----------------")
-train_data = JAFFE(is_train=True, transform=transform_train, target_type=target_type)
-test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type)
-print("------------Data Already be Prepared---------")
-
+if opt.dataset == "JAFFE":
+    train_data = JAFFE(is_train=True, transform=transform_train, target_type=target_type)
+    test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type)
+elif opt.dataset == "CK+48":
+    train_data = CKPlus48(is_train=True, transform=transform_train, target_type=target_type)
+    test_data = CKPlus48(is_train=False, transform=transform_test, target_type=target_type)
+elif opt.dataset == "CK+":
+    train_data = CKPlus48(is_train=True, transform=transform_train, target_type=target_type, img_dir_pre_path="data/CK+")
+    test_data = CKPlus48(is_train=False, transform=transform_test, target_type=target_type, img_dir_pre_path="data/CK+")
+elif opt.dataset == "FER2013":
+    train_data = FER2013(is_train=True, private_test=True, transform=transform_train, target_type=target_type)
+    test_data = FER2013(is_train=False, private_test=True, transform=transform_test, target_type=target_type)
+else:
+    assert("opt.dataset should be in %s, but got %s" % (enabled_datasets, opt.dataset))
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.bs, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.bs, shuffle=False)
+print("------------Data Already be Prepared---------")
 
 
 # Training
-def train(epoch):
+def train(epoch, jump_out_lr=-1.):
     print('\n------------Epoch: %d-------------' % epoch)
     # 根据训练的epoch次数来降低learning rate
     if epoch > opt.lrd_se > 0:
         frac = (epoch - opt.lrd_se) // opt.lrd_s
         decay_factor = opt.lrd_r ** frac
-        current_lr = opt.lr * decay_factor
-        # current_lr = opt.lr * 降低率 ^ ((epoch - 开始decay的epoch) // 每次decay的epoch num)
+        current_lr = opt.lr * decay_factor  # current_lr = opt.lr * 降低率 ^ ((epoch - 开始decay的epoch) // 每次decay的epoch num)
         utils.set_lr(optimizer, current_lr)  # set the learning rate
     else:
         current_lr = opt.lr
@@ -128,8 +186,8 @@ def train(epoch):
 # Testing
 def test(epoch):
     global Test_acc
+    private_test_loss = 0
     net.eval()
-    PrivateTest_loss = 0
     correct = 0
     total = 0
     cur_test_acc = 0.
@@ -145,7 +203,7 @@ def test(epoch):
             outputs_avg = outputs.view(bs, ncrops, -1).mean(1)  # avg over crops
 
             loss = criterion(outputs_avg, targets)
-            PrivateTest_loss += loss.data
+            private_test_loss += loss.data
             _, predicted = torch.max(outputs_avg.data, 1)
             if target_type == 'ls':
                 ground_value = targets.data
@@ -161,25 +219,37 @@ def test(epoch):
             cur_test_acc = (100. * correct / total).item()
 
             utils.progress_bar(batch_idx, len(test_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (PrivateTest_loss / (batch_idx + 1), cur_test_acc, correct, total))
+                         % (private_test_loss / (batch_idx + 1), cur_test_acc, correct, total))
 
     Test_acc = cur_test_acc
     if test_acc_map['best_acc'] < Test_acc:
         test_acc_map['best_acc'] = Test_acc
         test_acc_map['best_acc_epoch'] = epoch
+        print('Saving net to %s' % net_to_save_path)
+        print("best_acc: %0.3f" % test_acc_map['best_acc'])
+        state = {'net': net.state_dict() if use_cuda else net,
+                 'best_test_acc': test_acc_map['best_acc'],
+                 'best_test_acc_epoch': test_acc_map['best_acc_epoch'],
+                 }
+        if not os.path.isdir(net_to_save_dir):
+            os.mkdir(net_to_save_dir)
+        if not os.path.isdir(net_to_save_path):
+            os.mkdir(net_to_save_path)
+        torch.save(state, os.path.join(net_to_save_path, saved_model_name))
 
 
 if __name__ == "__main__":
-    for epoch in range(opt.epoch):
+    for epoch in range(start_epoch, opt.epoch, 1):
         train(epoch)
+        # for parameters in net.parameters():
+        #     print(parameters.size())
+        #     print(parameters[0][0][0])
+        #     break
+
         # for name,parameters in net.named_parameters():
         #     print(name,':',parameters.size())
         #     print(parameters)
         #     break
-        for parameters in net.parameters():
-            print(parameters.size())
-            print(parameters[0][0][0])
-            break
         test(epoch)
     print(train_acc_map)
     print(test_acc_map)
