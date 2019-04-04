@@ -15,6 +15,7 @@ numpy, pandas, seaborn, matplotlib 等，报什么缺失补什么
 
 目录
 ----
+'''
 其中仓库未提供：data文件夹（需要按照下述目录进行放置）和Saved_Models文件夹（训练过程中自动生成）
 E:.
 ├─.idea
@@ -79,4 +80,5 @@ E:.
 │  ├─CK+48_ACNN_1
 │  └─CK+48_AlexNet_1
 ├─transforms
-├─utils
+└─utils
+'''
