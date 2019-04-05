@@ -64,25 +64,19 @@ class FER2013(data.Dataset):
                 self.train_data_num += 1
                 if is_train:
                     img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    if self.transform is not None:
-                        img = self.transform(img)
-                    self.train_data.append(np.array(img))
+                    self.train_data.append(img)
                     self.train_classes.append(self.classes_map[line[0]])
             elif private_test and line[2] == 'PrivateTest':
                 self.test_data_num += 1
                 if not is_train:
                     img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    if self.transform is not None:
-                        img = self.transform(img)
-                    self.test_data.append(np.array(img))
+                    self.test_data.append(img)
                     self.test_classes.append(self.classes_map[line[0]])
             elif not private_test and line[2] == 'PublicTest':
                 self.test_data_num += 1
                 if not is_train:
                     img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    if self.transform is not None:
-                        img = self.transform(img)
-                    self.test_data.append(np.array(img))
+                    self.test_data.append(img)
                     self.test_classes.append(self.classes_map[line[0]])
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
 
@@ -100,6 +94,11 @@ class FER2013(data.Dataset):
             img, cla = self.train_data[index], self.train_classes[index]
         else:
             img, cla = self.test_data[index], self.test_classes[index]
+
+        img = img.convert("L")
+        # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
+        if self.transform is not None:
+            img = self.transform(img)
 
         return img, cla
 

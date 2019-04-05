@@ -81,17 +81,13 @@ class CKPlus48(data.Dataset):
                     self.train_data_num += 1
                     if is_train:
                         img = Image.open(os.path.join(self.img_dir_pre_path, c, img_file_name))
-                        if self.transform is not None:
-                            img = self.transform(img)
-                        self.train_data.append(np.array(img))
+                        self.train_data.append(img)
                         self.train_classes.append(self.classes_map[c])
                 elif img_file_name[:4] in self.test_people_indexes:
                     self.test_data_num += 1
                     if not is_train:
                         img = Image.open(os.path.join(self.img_dir_pre_path, c, img_file_name))
-                        if self.transform is not None:
-                            img = self.transform(img)
-                        self.test_data.append(np.array(img))
+                        self.test_data.append(img)
                         self.test_classes.append(self.classes_map[c])
                 else:
                     print("img:(%s,%s) is not belong to both of train or test set!" % (c, img_file_name))
@@ -111,6 +107,11 @@ class CKPlus48(data.Dataset):
             img, cla = self.train_data[index], self.train_classes[index]
         else:
             img, cla = self.test_data[index], self.test_classes[index]
+
+        img = img.convert("L")
+        # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
+        if self.transform is not None:
+            img = self.transform(img)
 
         return img, cla
 

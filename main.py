@@ -26,14 +26,14 @@ enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
-# parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
-parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
+parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
+# parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 
 # 数据集选择
 # parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
-parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
+# parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
 # parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
-# parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
+parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
 # 存储的模型序号
@@ -86,7 +86,8 @@ print("------------Model Already be Prepared---------")
 
 input_img_size = net.input_size
 transform_train = transforms.Compose([
-    transforms.Resize(input_img_size),
+    transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是费正方形的，那么输出也不是正方形的
+    transforms.RandomCrop(input_img_size),  # 用于将非正方形的图片进行处理
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
 ])

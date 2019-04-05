@@ -69,20 +69,15 @@ class JAFFE(data.Dataset):
             if is_train:
                 for img_file_name in img_file_names:
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
-                    if self.transform is not None:
-                        img = self.transform(img)
-                    self.train_data.append(np.array(img))
+                    self.train_data.append(img)
                     self.train_classes.append(self.classes_map[img_file_name[3:5]])
-
         for person_name in self.test_people_names:
             img_file_names = os.listdir(os.path.join(self.img_dir_pre_path, person_name))
             self.test_data_num += len(img_file_names)
             if not is_train:
                 for img_file_name in img_file_names:
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
-                    if self.transform is not None:
-                        img = self.transform(img)
-                    self.test_data.append(np.array(img))
+                    self.test_data.append(img)
                     self.test_classes.append(self.classes_map[img_file_name[3:5]])
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
 
@@ -100,6 +95,11 @@ class JAFFE(data.Dataset):
             img, cla = self.train_data[index], self.train_classes[index]
         else:
             img, cla = self.test_data[index], self.test_classes[index]
+
+        img = img.convert("L")
+        # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
+        if self.transform is not None:
+            img = self.transform(img)
 
         return img, cla
 
