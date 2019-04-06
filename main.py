@@ -26,14 +26,14 @@ enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
-parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
-# parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
+# parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
+parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 
 # 数据集选择
-# parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
+parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
 # parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
 # parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
-parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
+# parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
 # 存储的模型序号
@@ -43,11 +43,11 @@ parser.add_argument('--bs', default=32, type=int, help='batch_size')
 # 学习率
 parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 # epoch
-parser.add_argument('--epoch', default=300, type=int, help='training epoch num')
+parser.add_argument('--epoch', default=500, type=int, help='training epoch num')
 # 每次获得到更优的准确率后，会进行一次存储，此选项选择是否从上次存储位置继续
 parser.add_argument('--resume', default=False, type=bool, help='resume training from last checkpoint')
 # 表示默认从第 $lrd_se 次epoch开始进行lr的递减，应该小于 $jump_out_epoch
-parser.add_argument('--lrd_se', default=200, type=int, help='learning rate decay start epoch')
+parser.add_argument('--lrd_se', default=400, type=int, help='learning rate decay start epoch')
 # 表示默认每经过2次epoch进行一次递减
 parser.add_argument('--lrd_s', default=5, type=int, help='learning rate decay step')
 # 表示每次的lr的递减率，默认每递减一次乘一次0.9
@@ -82,7 +82,7 @@ if opt.resume:
     start_epoch = test_acc_map['best_acc_epoch'] + 1
 else:
     start_epoch = 0
-print("------------Model Already be Prepared---------")
+print("------------%s Model Already be Prepared------------" % opt.model)
 
 input_img_size = net.input_size
 transform_train = transforms.Compose([
@@ -123,7 +123,7 @@ else:
     assert("opt.dataset should be in %s, but got %s" % (enabled_datasets, opt.dataset))
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.bs, shuffle=True)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.bs, shuffle=False)
-print("------------Data Already be Prepared---------")
+print("------------%s Data Already be Prepared------------" % opt.dataset)
 
 
 # Training
@@ -192,6 +192,7 @@ def test(epoch):
     correct = 0
     total = 0
     cur_test_acc = 0.
+    correct_map = [0, 0, 0, 0, 0, 0, 0]
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(test_loader):
             bs, ncrops, c, h, w = np.shape(inputs)
@@ -213,7 +214,9 @@ def test(epoch):
 
             for i in range(len(predicted)):
                 if predicted[i] == ground_value[i]:
-                    test_acc_map[predicted[i].item()] += 1
+                    c = predicted[i].item()
+                    test_acc_map[c] += 1
+                    correct_map[c] += 1
 
             total += targets.size(0)
             correct += predicted.eq(ground_value.data).cpu().sum()
@@ -227,10 +230,12 @@ def test(epoch):
         test_acc_map['best_acc'] = Test_acc
         test_acc_map['best_acc_epoch'] = epoch
         print('Saving net to %s' % net_to_save_path)
-        print("best_acc: %0.3f" % test_acc_map['best_acc'])
+        print('best_acc: %0.3f' % test_acc_map['best_acc'])
+        print('correct_map: %s' % correct_map)
         state = {'net': net.state_dict() if use_cuda else net,
                  'best_test_acc': test_acc_map['best_acc'],
                  'best_test_acc_epoch': test_acc_map['best_acc_epoch'],
+                 'correct_map': correct_map,
                  }
         if not os.path.isdir(net_to_save_dir):
             os.mkdir(net_to_save_dir)
@@ -240,6 +245,7 @@ def test(epoch):
 
 
 if __name__ == "__main__":
+
     for epoch in range(start_epoch, opt.epoch, 1):
         train(epoch)
         # for parameters in net.parameters():
