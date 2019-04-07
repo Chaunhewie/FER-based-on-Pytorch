@@ -22,7 +22,7 @@ class JAFFE(data.Dataset):
                                   and len(test set):len(train set) = 1:(10-k_folder)
         img_dir_pre_path (str, optional): The relative path of the data dictionary and main file
 
-        there are NEU:30 HAP:31 SAD:31 SUR:30 ANG:30 DIS:29 FEA:32 images in data with ten people
+        there are 213(NEU:30 HAP:31 SAD:31 SUR:30 ANG:30 DIS:29 FEA:32) images in data with ten people
         we choose images of 9 people, whose name is in self.train_people_names, for training
         we choose images of 1 person, whose name is in self.test_people_names, for testing
     """

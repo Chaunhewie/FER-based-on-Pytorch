@@ -61,6 +61,13 @@ if __name__ == "__main__":
     net = ACNN(n_classes=n_classes)
     print(net)
 
+    num_of_parameters = 0
     for name, parameters in net.named_parameters():
         print(name, ':', parameters.size())
-        print(parameters)
+        # print(parameters)
+        num = 1
+        for i in parameters.size():
+            num *= i
+        print(num)
+        num_of_parameters += num
+    print(num_of_parameters)

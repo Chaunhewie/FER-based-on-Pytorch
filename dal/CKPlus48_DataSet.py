@@ -32,7 +32,7 @@ class CKPlus48(data.Dataset):
                                   and len(test set):len(train set) = 1:(10-k_folder)
         img_dir_pre_path (str, optional): The relative path of the data dictionary and main file
 
-        there are anger:13 contempt:5 disgust:17 fear:7 happy:20 sadness:8 surprise:249 images in data with 123 people
+        there are 981(anger:135 contempt:54 disgust:177 fear:75 happy:207 sadness:84 surprise:249) images in data with 123 people
         we choose images of 111 people, whose name is in self.train_people_names, for training
         we choose images of 12 person, whose name is in self.test_people_names, for testing
     """
