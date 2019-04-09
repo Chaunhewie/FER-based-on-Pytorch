@@ -131,6 +131,7 @@ if __name__ == "__main__":
     c2 = CKPlus48(is_train=False, img_dir_pre_path="../data/CK+48")
     print(c1.__len__(), c2.__len__())
 
-    from utils.utils import draw_pic
-    draw_pic(c1.__getitem__(0)[0])
-    draw_pic(c2.__getitem__(0)[0])
+    from utils.utils import draw_img
+
+    draw_img(c1.__getitem__(0)[0])
+    draw_img(c2.__getitem__(0)[0])

@@ -119,6 +119,7 @@ if __name__ == "__main__":
     j2 = JAFFE(is_train=False, img_dir_pre_path="../data/jaffe")
     print(j1.__len__(), j2.__len__())
 
-    from utils.utils import draw_pic
-    draw_pic(j1.__getitem__(0)[0])
-    draw_pic(j2.__getitem__(0)[0])
+    from utils.utils import draw_img
+
+    draw_img(j1.__getitem__(0)[0])
+    draw_img(j2.__getitem__(0)[0])

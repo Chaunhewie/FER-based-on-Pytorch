@@ -38,9 +38,20 @@ def clip_gradient(optimizer, grad_clip):
             param.grad.data.clamp_(-grad_clip, grad_clip)
 
 
-def draw_pic(arr):
-    img = Image.fromarray(arr)
+def draw_img(img, save_path="", plt_show=True, log_enabled=True):
+    """
+    绘制图像
+    :param img: img
+    :return: None
+    """
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.imshow(np.array(img), cmap="gray")
-    plt.show()
+    if len(save_path) > 0:
+        plt.savefig(save_path)
+        if log_enabled:
+            print("saved fig to %s" % save_path)
+    if plt_show:
+        plt.show()
+    else:
+        plt.close('all')

@@ -118,6 +118,7 @@ if __name__ == "__main__":
     f2 = FER2013(is_train=False, img_dir_pre_path="../data/fer2013")
     print(f1.__len__(), f2.__len__())
 
-    from utils.utils import draw_pic
-    draw_pic(f1.__getitem__(0)[0])
-    draw_pic(f2.__getitem__(0)[0])
+    from utils.utils import draw_img
+
+    draw_img(f1.__getitem__(0)[0])
+    draw_img(f2.__getitem__(0)[0])

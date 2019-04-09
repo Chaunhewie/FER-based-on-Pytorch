@@ -15,7 +15,7 @@ from networks.AlexNet import AlexNet
 from dal.JAFFE_DataSet import JAFFE
 from dal.CKPlus48_DataSet import CKPlus48
 from dal.FER2013_DataSet import FER2013
-import transforms.transforms
+import transforms.transforms as transforms
 import utils.utils as utils
 
 use_cuda = torch.cuda.is_available()
@@ -26,14 +26,14 @@ enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
-# parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
-parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
+parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
+# parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 
 # 数据集选择
 # parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
 # parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
-# parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
-parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
+parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
+# parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
 # 存储的模型序号
@@ -69,13 +69,13 @@ if opt.model == "ACNN":
 elif opt.model == "AlexNet":
     net = AlexNet(n_classes=n_classes).to(DEVICE)
 else:
+    net = None
     assert("opt.model should be in %s, but got %s" % (enabled_nets, opt.model))
 if opt.resume:
     # Load checkpoint.
     print('==> Loading Model Parameters...')
     assert os.path.isdir(net_to_save_path), 'Error: no checkpoint directory found!'
     checkpoint = torch.load(os.path.join(net_to_save_path, saved_model_name))
-
     net.load_state_dict(checkpoint['net'])
     test_acc_map['best_acc'] = checkpoint['best_test_acc']
     test_acc_map['best_acc_epoch'] = checkpoint['best_test_acc_epoch']
