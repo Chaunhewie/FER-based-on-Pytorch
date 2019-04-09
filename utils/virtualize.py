@@ -60,6 +60,7 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_sa
             if not os.path.exists(img_save_dir):
                 os.mkdir(img_save_dir)
             utils.draw_img(img, os.path.join(img_save_dir, img_save_name+"_of_img_"+str(i)), plt_show=False)
+            break
 
 
 if __name__ == "__main__":
