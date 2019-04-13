@@ -44,7 +44,7 @@ def draw_img(img, save_path="", plt_show=True, log_enabled=True):
     :param img: img
     :return: None
     """
-    fig = plt.figure()
+    fig = plt.figure(figsize=(20, 20))  # figsize: width, height in inches
     ax = fig.add_subplot(111)
     ax.imshow(np.array(img), cmap="gray")
     if len(save_path) > 0:

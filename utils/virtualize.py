@@ -63,7 +63,7 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_sa
             break
 
 
-if __name__ == "__main__":
+def test_draw_features_and_weights_of_net():
     import sys
     sys.path.append("..")
     from torch.autograd import Variable
@@ -142,3 +142,46 @@ if __name__ == "__main__":
     inputs, targets = Variable(inputs), Variable(targets)
 
     draw_features_of_net(net, inputs, img_name_pre='test', img_save_dir="../Saved_Virtualizations")
+    draw_weights_of_net(net, img_name_pre='test', img_save_dir="../Saved_Virtualizations")
+
+
+def draw_weights_of_net(net, img_name_pre = "", blank_size = 2, img_save_dir = "Saved_Virtualizations"):
+    """
+    绘制网络所有的特征层的输出情况
+    :param net: 网络
+    :param img_name_pre: 存储的图片的前缀
+    :param blank_size: 样图之间的间距（pixel）
+    :param img_save_dir: 存储的目录
+    :return: None
+    """
+    layer_number = 0
+    stat_dict = net.state_dict()
+    for dic in stat_dict.keys():
+        dic_splited = dic.split(".")
+        if dic_splited[0] == 'features' and dic_splited[2] == 'weight':
+            img_save_name = img_name_pre + "_weight_layer_" + str(layer_number)
+            weights = stat_dict[dic]
+            # print(dic, weights)
+            out_channel_num = len(weights)
+            in_channel_num = len(weights[0])
+            kernel_height = len(weights[0][0])
+            kernel_width = len(weights[0][0][0])
+            img_arr = np.array([[0.5 for _ in range(kernel_width*in_channel_num+(in_channel_num-1)*blank_size)]for _ in range(kernel_height*out_channel_num+(out_channel_num-1)*blank_size)])
+            # print(img_arr.shape)
+            for out_channel_number in range(out_channel_num):
+                for in_channel_number in range(in_channel_num):
+                    start_row_index, start_col_index = (out_channel_number)*(blank_size+kernel_height), (in_channel_number)*(blank_size+kernel_width)
+                    kernel = weights[out_channel_number][in_channel_number]
+                    # print(kernel.shape)
+                    for row_pixel_index in range(kernel.shape[0]):
+                        for col_pixel_index in range(kernel.shape[1]):
+                            img_arr[start_row_index+row_pixel_index][start_col_index+col_pixel_index] = kernel[row_pixel_index][col_pixel_index]
+            img = Image.fromarray(img_arr)
+            if not os.path.exists(img_save_dir):
+                os.mkdir(img_save_dir)
+            utils.draw_img(img, os.path.join(img_save_dir, img_save_name), plt_show=False)
+            layer_number += 1
+
+
+if __name__ == "__main__":
+    test_draw_features_and_weights_of_net()
