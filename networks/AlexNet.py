@@ -39,6 +39,7 @@ class AlexNet(nn.Module):
         # print("step 0:", x.size())
         x = self.features(x)
         # print("step 1:", x.size())
+        self.features_out = x.clone()
         x = x.view(x.size(0), 256 * 6 * 6)
         # print("step 2:", x.size())
         x = self.classifier(x)

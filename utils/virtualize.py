@@ -30,6 +30,7 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_sa
             handlers.append(layer[1].register_forward_hook(get_features_hook))
     with torch.no_grad():
         net(test_inputs)
+        features_hook.append(net.features_out)
     for handler in handlers:
         handler.remove()
 
@@ -43,6 +44,7 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_sa
             image = images[i]
             # print("image shape:", image.shape)
             image_shape = image.shape
+            print(image_shape)
             col_num = int(ceil(image_shape[0] ** 0.5))
             row_num = int(ceil(image_shape[0] / col_num))
             height = row_num * image_shape[1]
@@ -62,13 +64,13 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_sa
             utils.draw_img(img, os.path.join(img_save_dir, img_save_name+"_of_img_"+str(i)), plt_show=False)
             break
 
-
 def test_draw_features_and_weights_of_net():
     import sys
     sys.path.append("..")
     from torch.autograd import Variable
     import transforms.transforms as transforms
     from networks.ACNN import ACNN
+    from networks.ACCNN import ACCNN
     from networks.AlexNet import AlexNet
     from dal.CKPlus48_DataSet import CKPlus48
     from dal.FER2013_DataSet import FER2013
@@ -76,7 +78,7 @@ def test_draw_features_and_weights_of_net():
 
     net_to_save_dir = "../Saved_Models"
     saved_model_name = 'Best_model.t7'
-    fold = 1
+    fold = 2
     enabled_nets = ["ACNN", "AlexNet"]
     enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 

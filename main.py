@@ -11,6 +11,7 @@ import numpy as np
 import argparse
 
 from networks.ACNN import ACNN
+from networks.ACCNN import ACCNN
 from networks.AlexNet import AlexNet
 from dal.JAFFE_DataSet import JAFFE
 from dal.CKPlus48_DataSet import CKPlus48
@@ -20,24 +21,25 @@ import utils.utils as utils
 
 use_cuda = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if use_cuda else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
-enabled_nets = ["ACNN", "AlexNet"]
+enabled_nets = ["ACNN", "ACCNN", "AlexNet"]
 enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
-parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
+# parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
+parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
 # parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 
 # 数据集选择
 # parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
-# parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
-parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
+parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
+# parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
 # parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
 # 存储的模型序号
-parser.add_argument('--save_number', default=1, type=int, help='save_number')
+parser.add_argument('--save_number', default=2, type=int, help='save_number')
 # 批次大小
 parser.add_argument('--bs', default=32, type=int, help='batch_size')
 # 学习率
@@ -66,22 +68,26 @@ net_to_save_path = os.path.join(net_to_save_dir, opt.dataset + '_' + opt.model +
 saved_model_name = 'Best_model.t7'
 if opt.model == "ACNN":
     net = ACNN(n_classes=n_classes).to(DEVICE)
+elif opt.model == "ACCNN":
+    net = ACCNN(n_classes=n_classes).to(DEVICE)
 elif opt.model == "AlexNet":
     net = AlexNet(n_classes=n_classes).to(DEVICE)
 else:
     net = None
     assert("opt.model should be in %s, but got %s" % (enabled_nets, opt.model))
+start_epoch = 0
 if opt.resume:
     # Load checkpoint.
     print('==> Loading Model Parameters...')
-    assert os.path.isdir(net_to_save_path), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load(os.path.join(net_to_save_path, saved_model_name))
-    net.load_state_dict(checkpoint['net'])
-    test_acc_map['best_acc'] = checkpoint['best_test_acc']
-    test_acc_map['best_acc_epoch'] = checkpoint['best_test_acc_epoch']
-    start_epoch = test_acc_map['best_acc_epoch'] + 1
-else:
-    start_epoch = 0
+    if os.path.exists(os.path.join(net_to_save_path, saved_model_name)):
+        assert os.path.isdir(net_to_save_path), 'Error: no checkpoint directory found!'
+        checkpoint = torch.load(os.path.join(net_to_save_path, saved_model_name))
+        net.load_state_dict(checkpoint['net'])
+        test_acc_map['best_acc'] = checkpoint['best_test_acc']
+        test_acc_map['best_acc_epoch'] = checkpoint['best_test_acc_epoch']
+        start_epoch = test_acc_map['best_acc_epoch'] + 1
+    else:
+        print("Checkout File not Found, No initialization.")
 print("------------%s Model Already be Prepared------------" % opt.model)
 
 input_img_size = net.input_size
