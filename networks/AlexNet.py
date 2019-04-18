@@ -34,12 +34,13 @@ class AlexNet(nn.Module):
             nn.Linear(4096, n_classes),
             nn.LogSoftmax(1),
         )
+        self.features_out = []
 
     def forward(self, x):
         # print("step 0:", x.size())
         x = self.features(x)
         # print("step 1:", x.size())
-        self.features_out = x.clone()
+        self.features_out.append(x.clone())
         x = x.view(x.size(0), 256 * 6 * 6)
         # print("step 2:", x.size())
         x = self.classifier(x)

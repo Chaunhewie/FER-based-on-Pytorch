@@ -37,12 +37,13 @@ class ACCNN(nn.Module):
             nn.Linear(20, n_classes),
             nn.LogSoftmax(1),
         )
+        self.features_out = []
 
     def forward(self, x):
         # print(x.size())
         x = self.features(x)
         # print(x.size())
-        self.features_out = x.clone()
+        self.features_out.append(x.clone())
         x = x.view(-1, self.num_flat_features(x))
         # print(x.size())
         x = self.classifier(x)

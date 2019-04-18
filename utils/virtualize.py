@@ -8,7 +8,8 @@ import numpy as np
 import utils
 
 
-def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_save_dir="Saved_Virtualizations"):
+def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_save_dir="Saved_Virtualizations",
+                         net_name="test", dataset="test"):
     """
     绘制网络所有的特征层的输出情况
     :param net: 网络
@@ -26,7 +27,7 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_sa
 
     handlers = []
     for layer in net.named_modules():
-        if isinstance(layer[1],nn.Conv2d):
+        if isinstance(layer[1], nn.Conv2d):
             handlers.append(layer[1].register_forward_hook(get_features_hook))
     with torch.no_grad():
         net(test_inputs)
@@ -44,7 +45,6 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", blank_size=2, img_sa
             image = images[i]
             # print("image shape:", image.shape)
             image_shape = image.shape
-            print(image_shape)
             col_num = int(ceil(image_shape[0] ** 0.5))
             row_num = int(ceil(image_shape[0] / col_num))
             height = row_num * image_shape[1]
@@ -78,17 +78,20 @@ def test_draw_features_and_weights_of_net():
 
     net_to_save_dir = "../Saved_Models"
     saved_model_name = 'Best_model.t7'
-    fold = 2
-    enabled_nets = ["ACNN", "AlexNet"]
+    enabled_nets = ["ACNN", "ACCNN", "AlexNet"]
     enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 
     # 配置信息
     use_cuda = torch.cuda.is_available()
     DEVICE = torch.device("cuda" if use_cuda else "cpu")
-    net_name, n_classes = 'ACNN', 7
+    target_type, n_classes = 'ls', 7
+    # 主要在这里设置
+    net_name, dataset, fold = 'ACNN', 'CK+', 1
 
     if net_name == "ACNN":
         net = ACNN(n_classes=n_classes).to(DEVICE)
+    elif net_name == "ACCNN":
+        net = ACCNN(n_classes=n_classes).to(DEVICE)
     elif net_name == "AlexNet":
         net = AlexNet(n_classes=n_classes).to(DEVICE)
     input_img_size = net.input_size
@@ -105,8 +108,6 @@ def test_draw_features_and_weights_of_net():
         transforms.TenCrop(input_img_size),
         transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
     ])
-    dataset = 'CK+'
-    target_type = 'ls'
     if dataset == "JAFFE":
         test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type,
                           img_dir_pre_path="../data/jaffe")
@@ -143,8 +144,8 @@ def test_draw_features_and_weights_of_net():
         inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
     inputs, targets = Variable(inputs), Variable(targets)
 
-    draw_features_of_net(net, inputs, img_name_pre='test', img_save_dir="../Saved_Virtualizations")
-    draw_weights_of_net(net, img_name_pre='test', img_save_dir="../Saved_Virtualizations")
+    draw_features_of_net(net, inputs, img_name_pre=net_name+"_"+dataset, img_save_dir="../Saved_Virtualizations")
+    draw_weights_of_net(net, img_name_pre=net_name+"_"+dataset, img_save_dir="../Saved_Virtualizations")
 
 
 def draw_weights_of_net(net, img_name_pre = "", blank_size = 2, img_save_dir = "Saved_Virtualizations"):
