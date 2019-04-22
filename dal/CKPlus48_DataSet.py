@@ -4,6 +4,7 @@ import random
 from PIL import Image
 import numpy as np
 import torch.utils.data as data
+import face_recognition
 
 All_People_Indexes = ['S119', 'S130', 'S127', 'S073', 'S067', 'S107', 'S092', 'S160', 'S134', 'S106', 'S101', 'S155',
                       'S109', 'S053', 'S116', 'S139', 'S064', 'S117', 'S505', 'S099', 'S122', 'S082', 'S079', 'S121',
@@ -108,7 +109,25 @@ class CKPlus48(data.Dataset):
         else:
             img, cla = self.test_data[index], self.test_classes[index]
 
+        # 图片转化为灰度图
         img = img.convert("L")
+        # 获取图片的人脸定位
+        top, right, bottom, left = face_recognition.face_locations(np.array(img))[0]
+        # 脸部关键点标记获取
+        face_landmarks = face_recognition.face_landmarks(np.array(img))[0]
+        # 扩充脸部区域
+        for name, plot_list in face_landmarks.items():
+            for plot in plot_list:
+                if plot[0] < left:
+                    left = plot[0]
+                if plot[0] > right:
+                    right = plot[0]
+                if plot[1] < top:
+                    top = plot[1]
+                if plot[1] > bottom:
+                    bottom = plot[1]
+        # 脸部剪裁
+        img = img.crop((left, top, right, bottom))
         # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
         if self.transform is not None:
             img = self.transform(img)

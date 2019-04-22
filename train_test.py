@@ -21,6 +21,8 @@ import utils.utils as utils
 
 use_cuda = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if use_cuda else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
+print('cuda available: ', use_cuda)
+print('using DEVICE: ', DEVICE)
 enabled_nets = ["ACNN", "ACCNN", "AlexNet"]
 enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
 
@@ -32,14 +34,14 @@ parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture
 # parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 
 # 数据集选择
-# parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
-parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
+parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
+# parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
 # parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
 # parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
 # 存储的模型序号
-parser.add_argument('--save_number', default=2, type=int, help='save_number')
+parser.add_argument('--save_number', default=3, type=int, help='save_number')
 # 批次大小
 parser.add_argument('--bs', default=32, type=int, help='batch_size')
 # 学习率
