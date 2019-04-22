@@ -102,7 +102,6 @@ IMG_STD = [0.225]
 input_img_size = net.input_size
 transform_train = transforms.Compose([
     transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
-
     transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(30),
     transforms.ToTensor(),
