@@ -35,7 +35,7 @@ class ACNN(nn.Module):
             nn.Linear(10 * 2 * 2, 16),
             nn.Dropout(),
             nn.Linear(16, n_classes),
-            nn.LogSoftmax(1),
+            nn.Softmax(1),
         )
         self.features_out = []
 

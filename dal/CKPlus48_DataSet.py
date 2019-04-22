@@ -4,7 +4,9 @@ import random
 from PIL import Image
 import numpy as np
 import torch.utils.data as data
-import face_recognition
+import sys
+sys.path.append('..')
+from utils.face_recognition import crop_face_area_and_get_landmarks
 
 All_People_Indexes = ['S119', 'S130', 'S127', 'S073', 'S067', 'S107', 'S092', 'S160', 'S134', 'S106', 'S101', 'S155',
                       'S109', 'S053', 'S116', 'S139', 'S064', 'S117', 'S505', 'S099', 'S122', 'S082', 'S079', 'S121',
@@ -71,9 +73,13 @@ class CKPlus48(data.Dataset):
         self.train_data = []
         self.train_data_num = 0
         self.train_classes = []
+        self.train_box = []
+        self.train_landmarks = []
         self.test_data = []
         self.test_data_num = 0
         self.test_classes = []
+        self.test_box = []
+        self.test_landmarks = []
         classes = os.listdir(self.img_dir_pre_path)
         for c in classes:
             img_file_names = os.listdir(os.path.join(self.img_dir_pre_path, c))
@@ -82,14 +88,20 @@ class CKPlus48(data.Dataset):
                     self.train_data_num += 1
                     if is_train:
                         img = Image.open(os.path.join(self.img_dir_pre_path, c, img_file_name))
+                        img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
                         self.train_data.append(img)
                         self.train_classes.append(self.classes_map[c])
+                        self.train_box.append(face_box)
+                        self.train_landmarks.append(face_landmarks)
                 elif img_file_name[:4] in self.test_people_indexes:
                     self.test_data_num += 1
                     if not is_train:
                         img = Image.open(os.path.join(self.img_dir_pre_path, c, img_file_name))
+                        img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
                         self.test_data.append(img)
                         self.test_classes.append(self.classes_map[c])
+                        self.test_box.append(face_box)
+                        self.test_landmarks.append(face_landmarks)
                 else:
                     print("img:(%s,%s) is not belong to both of train or test set!" % (c, img_file_name))
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
@@ -103,36 +115,20 @@ class CKPlus48(data.Dataset):
             tuple: (image, target) where target is index of the target class.
         """
         if index >= self.__len__():
-            return None, None
-        if self.is_train:
-            img, cla = self.train_data[index], self.train_classes[index]
-        else:
-            img, cla = self.test_data[index], self.test_classes[index]
+            return None, None, None, None
 
-        # 图片转化为灰度图
-        img = img.convert("L")
-        # 获取图片的人脸定位
-        top, right, bottom, left = face_recognition.face_locations(np.array(img))[0]
-        # 脸部关键点标记获取
-        face_landmarks = face_recognition.face_landmarks(np.array(img))[0]
-        # 扩充脸部区域
-        for name, plot_list in face_landmarks.items():
-            for plot in plot_list:
-                if plot[0] < left:
-                    left = plot[0]
-                if plot[0] > right:
-                    right = plot[0]
-                if plot[1] < top:
-                    top = plot[1]
-                if plot[1] > bottom:
-                    bottom = plot[1]
-        # 脸部剪裁
-        img = img.crop((left, top, right, bottom))
+        if self.is_train:
+            img, cla, box, landmarks = self.train_data[index], self.train_classes[index], self.train_box[index], \
+                                       self.train_landmarks[index]
+        else:
+            img, cla, box, landmarks = self.test_data[index], self.test_classes[index], self.test_box[index], \
+                                       self.test_landmarks[index]
+
         # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, cla
+        return img, cla, box, landmarks
 
     def __len__(self):
         """
@@ -146,8 +142,8 @@ class CKPlus48(data.Dataset):
 
 
 if __name__ == "__main__":
-    c1 = CKPlus48(is_train=True, img_dir_pre_path="../data/CK+48")
-    c2 = CKPlus48(is_train=False, img_dir_pre_path="../data/CK+48")
+    c1 = CKPlus48(is_train=True, img_dir_pre_path="../data/CK+")
+    c2 = CKPlus48(is_train=False, img_dir_pre_path="../data/CK+")
     print(c1.__len__(), c2.__len__())
 
     from utils.utils import draw_img

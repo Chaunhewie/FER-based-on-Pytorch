@@ -32,7 +32,7 @@ class AlexNet(nn.Module):
             nn.Linear(4096, 4096),
             nn.ReLU(inplace=True),
             nn.Linear(4096, n_classes),
-            nn.LogSoftmax(1),
+            nn.Softmax(1),
         )
         self.features_out = []
 

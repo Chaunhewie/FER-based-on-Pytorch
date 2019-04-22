@@ -8,7 +8,31 @@ from matplotlib.lines import Line2D
 
 img_save_dir="Saved_Virtualizations"
 
-
+def crop_face_area_and_get_landmarks(img, image_size=400):
+    # 图片转化为灰度图
+    img = img.convert("L")
+    # 获取图片的人脸定位
+    top, right, bottom, left = face_recognition.face_locations(np.array(img))[0]
+    # 脸部关键点标记获取
+    face_landmarks = face_recognition.face_landmarks(np.array(img))[0]
+    # 扩充脸部区域
+    for name, plot_list in face_landmarks.items():
+        for plot in plot_list:
+            if plot[0] < left:
+                left = plot[0]
+            if plot[0] > right:
+                right = plot[0]
+            if plot[1] < top:
+                top = plot[1]
+            if plot[1] > bottom:
+                bottom = plot[1]
+    face_box = (left, top, right, bottom)
+    top_exp = int((bottom-top)*0.1)
+    bottom_exp = int((bottom-top)*0.05)
+    left_exp, right_exp = int((right-left)*0.1), int((right-left)*0.1)
+    # 脸部剪裁
+    img = img.crop((left-left_exp, top-top_exp, right+right_exp, bottom+bottom_exp)).resize((image_size, image_size))  # , Image.ANTIALIAS
+    return img, face_box, face_landmarks
 
 
 if __name__ == "__main__":

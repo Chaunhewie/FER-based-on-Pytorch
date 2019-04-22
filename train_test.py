@@ -47,13 +47,13 @@ parser.add_argument('--bs', default=32, type=int, help='batch_size')
 # 学习率
 parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 # epoch
-parser.add_argument('--epoch', default=500, type=int, help='training epoch num')
+parser.add_argument('--epoch', default=2000, type=int, help='training epoch num')
 # 每次获得到更优的准确率后，会进行一次存储，此选项选择是否从上次存储位置继续
 parser.add_argument('--resume', default=True, type=bool, help='resume training from last checkpoint')
 # 表示默认从第 $lrd_se 次epoch开始进行lr的递减，应该小于 $jump_out_epoch
-parser.add_argument('--lrd_se', default=400, type=int, help='learning rate decay start epoch')
+parser.add_argument('--lrd_se', default=1000, type=int, help='learning rate decay start epoch')
 # 表示默认每经过2次epoch进行一次递减
-parser.add_argument('--lrd_s', default=5, type=int, help='learning rate decay step')
+parser.add_argument('--lrd_s', default=50, type=int, help='learning rate decay step')
 # 表示每次的lr的递减率，默认每递减一次乘一次0.9
 parser.add_argument('--lrd_r', default=0.9, type=float, help='learning rate decay rate')
 opt = parser.parse_args()
@@ -92,20 +92,32 @@ if opt.resume:
         print("Checkout File not Found, No initialization.")
 print("------------%s Model Already be Prepared------------" % opt.model)
 
+# for gray images
+IMG_MEAN = [0.5]
+IMG_STD = [0.225]
+# for RGB images
+# IMG_MEAN = [0.485, 0.456, 0.406]
+# IMG_STD = [0.229, 0.224, 0.225]
+
 input_img_size = net.input_size
 transform_train = transforms.Compose([
-    transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是费正方形的，那么输出也不是正方形的
-    transforms.RandomCrop(input_img_size),  # 用于将非正方形的图片进行处理
+    transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
+
     transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(30),
     transforms.ToTensor(),
+    transforms.Normalize(IMG_MEAN, IMG_STD),
 ])
 
 test_img_size = int(input_img_size * 1.1)  # 测试时，图片resize大小
 transform_test = transforms.Compose([
-    transforms.Resize(test_img_size),
-    transforms.TenCrop(input_img_size),
-    transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
+    transforms.ToTensor(),
+    transforms.Normalize(IMG_MEAN, IMG_STD),
 ])
+# transforms.Resize(test_img_size),
+# transforms.TenCrop(input_img_size),
+# transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
 
 # criterion, target_type = nn.MSELoss(), 'fa'
 criterion, target_type = nn.CrossEntropyLoss(), 'ls'
@@ -152,7 +164,7 @@ def train(epoch, jump_out_lr=-1.):
     correct = 0
     total = 0
     cur_train_acc = 0.
-    for batch_idx, (inputs, targets) in enumerate(train_loader):
+    for batch_idx, (inputs, targets, _, _) in enumerate(train_loader):
         if use_cuda:
             inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
         optimizer.zero_grad()
@@ -202,15 +214,18 @@ def test(epoch):
     cur_test_acc = 0.
     correct_map = [0, 0, 0, 0, 0, 0, 0]
     with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(test_loader):
-            bs, ncrops, c, h, w = np.shape(inputs)
+        for batch_idx, (inputs, targets, _, _) in enumerate(test_loader):
+            bs, c, h, w = np.shape(inputs)
+            # bs, ncrops, c, h, w = np.shape(inputs)
             inputs = inputs.view(-1, c, h, w)
-
             if use_cuda:
                 inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
             inputs, targets = Variable(inputs), Variable(targets)
             outputs = net(inputs)
-            outputs_avg = outputs.view(bs, ncrops, -1).mean(1)  # avg over crops
+
+            # avg over crops if test_transform contains crop operations
+            # outputs_avg = outputs.view(bs, ncrops, -1).mean(1)
+            outputs_avg = outputs
 
             loss = criterion(outputs_avg, targets)
             private_test_loss += loss.data

@@ -4,7 +4,9 @@ import random
 from PIL import Image
 import numpy as np
 import torch.utils.data as data
-import face_recognition
+import sys
+sys.path.append('..')
+from utils.face_recognition import crop_face_area_and_get_landmarks
 
 All_People_Names = ['KM', 'KL', 'KR', 'YM', 'UY', 'NA', 'NM', 'MK', 'KA', 'TM']
 # random.shuffle(All_People_Names)
@@ -61,25 +63,35 @@ class JAFFE(data.Dataset):
         self.train_data = []
         self.train_data_num = 0
         self.train_classes = []
+        self.train_box = []
+        self.train_landmarks = []
         self.test_data = []
         self.test_data_num = 0
         self.test_classes = []
+        self.test_box = []
+        self.test_landmarks = []
         for person_name in self.train_people_names:
             img_file_names = os.listdir(os.path.join(self.img_dir_pre_path, person_name))
             self.train_data_num += len(img_file_names)
             if is_train:
                 for img_file_name in img_file_names:
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
+                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
                     self.train_data.append(img)
                     self.train_classes.append(self.classes_map[img_file_name[3:5]])
+                    self.train_box.append(face_box)
+                    self.train_landmarks.append(face_landmarks)
         for person_name in self.test_people_names:
             img_file_names = os.listdir(os.path.join(self.img_dir_pre_path, person_name))
             self.test_data_num += len(img_file_names)
             if not is_train:
                 for img_file_name in img_file_names:
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
+                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
                     self.test_data.append(img)
                     self.test_classes.append(self.classes_map[img_file_name[3:5]])
+                    self.test_box.append(face_box)
+                    self.test_landmarks.append(face_landmarks)
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
 
     def __getitem__(self, index):
@@ -91,36 +103,20 @@ class JAFFE(data.Dataset):
             tuple: (image, target) where target is index of the target class.
         """
         if index >= self.__len__():
-            return None, None
-        if self.is_train:
-            img, cla = self.train_data[index], self.train_classes[index]
-        else:
-            img, cla = self.test_data[index], self.test_classes[index]
+            return None, None, None, None
 
-        # 图片转化为灰度图
-        img = img.convert("L")
-        # 获取图片的人脸定位
-        top, right, bottom, left = face_recognition.face_locations(np.array(img))[0]
-        # 脸部关键点标记获取
-        face_landmarks = face_recognition.face_landmarks(np.array(img))[0]
-        # 扩充脸部区域
-        for name, plot_list in face_landmarks.items():
-            for plot in plot_list:
-                if plot[0] < left:
-                    left = plot[0]
-                if plot[0] > right:
-                    right = plot[0]
-                if plot[1] < top:
-                    top = plot[1]
-                if plot[1] > bottom:
-                    bottom = plot[1]
-        # 脸部剪裁
-        img = img.crop((left, top, right, bottom))
+        if self.is_train:
+            img, cla, box, landmarks = self.train_data[index], self.train_classes[index], self.train_box[index], \
+                                       self.train_landmarks[index]
+        else:
+            img, cla, box, landmarks = self.test_data[index], self.test_classes[index], self.test_box[index], \
+                                       self.test_landmarks[index]
+
         # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, cla
+        return img, cla, box, landmarks
 
     def __len__(self):
         """
