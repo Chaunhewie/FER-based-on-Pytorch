@@ -1,7 +1,7 @@
 # coding=utf-8
 import os
-enabled_nets = ["ACNN", "AlexNet"]
-enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
+enabled_nets = ["ACNN", "ACCNN", "AlexNet"]
+enabled_datasets = ["JAFFE", "CK+", "FER2013"]
 
 if __name__ == "__main__":
     for dataset in enabled_datasets:
