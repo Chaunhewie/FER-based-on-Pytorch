@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class AlexNet(nn.Module):
 
-    def __init__(self, n_classes=1000):
+    def __init__(self, n_classes=1000, virtualize=False):
         super(AlexNet, self).__init__()
         self.input_size = 223
         # N = (W-F+2P)/S + 1   W = (N-1)*S-2P+F
@@ -34,13 +34,15 @@ class AlexNet(nn.Module):
             nn.Linear(4096, n_classes),
             nn.Softmax(1),
         )
+        self.virtualize = virtualize
         self.features_out = []
 
     def forward(self, x):
         # print("step 0:", x.size())
         x = self.features(x)
         # print("step 1:", x.size())
-        self.features_out.append(x.clone())
+        if self.virtualize:
+            self.features_out.append(x.clone())
         x = x.view(x.size(0), 256 * 6 * 6)
         # print("step 2:", x.size())
         x = self.classifier(x)

@@ -30,8 +30,8 @@ parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
 # parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
-parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
-# parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
+# parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
+parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 
 # 数据集选择
 parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
@@ -147,7 +147,6 @@ print("------------%s Data Already be Prepared------------" % opt.dataset)
 
 # Training
 def train(epoch, jump_out_lr=-1.):
-    print('\n------------Epoch: %d-------------' % epoch)
     # 根据训练的epoch次数来降低learning rate
     if epoch > opt.lrd_se > 0:
         frac = (epoch - opt.lrd_se) // opt.lrd_s
@@ -197,6 +196,12 @@ def train(epoch, jump_out_lr=-1.):
         utils.progress_bar(batch_idx, len(train_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)' %
                            (train_loss / (batch_idx + 1), cur_train_acc, correct, total))
 
+        # 删除无用的变量，释放显存
+        del loss
+        del inputs
+        del outputs
+        del predicted
+
     Train_acc = cur_train_acc
     if train_acc_map['best_acc'] < Train_acc:
         train_acc_map['best_acc'] = Train_acc
@@ -242,10 +247,16 @@ def test(epoch):
 
             total += targets.size(0)
             correct += predicted.eq(ground_value.data).cpu().sum()
-            cur_test_acc = float((100. * correct / total).item())
+            cur_test_acc = (100. * correct / total).item()
 
             utils.progress_bar(batch_idx, len(test_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (private_test_loss / (batch_idx + 1), cur_test_acc, correct, total))
+
+            # 删除无用的变量，释放显存
+            del loss
+            del inputs
+            del outputs
+            del predicted
 
     Test_acc = cur_test_acc
     if test_acc_map['best_acc'] < Test_acc:
@@ -269,6 +280,7 @@ def test(epoch):
 if __name__ == "__main__":
 
     for epoch in range(start_epoch, opt.epoch, 1):
+        print('\n------------Epoch: %d-------------' % epoch)
         train(epoch)
         # for parameters in net.parameters():
         #     print(parameters.size())
@@ -282,3 +294,4 @@ if __name__ == "__main__":
         test(epoch)
     print(train_acc_map)
     print(test_acc_map)
+

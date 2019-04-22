@@ -11,7 +11,7 @@ import torch.nn as nn
 '''
 
 class ACNN(nn.Module):
-    def __init__(self, n_classes):
+    def __init__(self, n_classes, virtualize=False):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACNN, self).__init__()
         self.input_size = 48
@@ -37,13 +37,15 @@ class ACNN(nn.Module):
             nn.Linear(16, n_classes),
             nn.Softmax(1),
         )
+        self.virtualize = virtualize
         self.features_out = []
 
     def forward(self, x):
         # print(x.size())
         x = self.features(x)
         # print(x.size())
-        self.features_out.append(x.clone())
+        if self.virtualize:
+            self.features_out.append(x.clone())
         x = x.view(-1, self.num_flat_features(x))
         # print(x.size())
         x = self.classifier(x)

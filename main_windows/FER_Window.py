@@ -53,7 +53,7 @@ class FERWindow(QMainWindow):
             self.model_init()
 
     def model_init(self, model_root_pre_path=''):
-        self.model = ACCNN(7, True, model_root_pre_path).to(self.DEVICE)
+        self.model = ACCNN(7, True, model_root_pre_path, virtualize=True).to(self.DEVICE)
         self.transform_test = transforms.Compose([
             transforms.Resize(int(self.model.input_size*1.1)),
             transforms.TenCrop(self.model.input_size),
@@ -96,6 +96,7 @@ class FERWindow(QMainWindow):
             if self.use_cuda:
                 inputs = inputs.to(self.DEVICE)
             inputs = Variable(inputs)
+            self.model.clean_features_out()
             outputs = self.model(inputs)
             outputs_avg = outputs.view(bs, ncrops, -1).mean(1)  # avg over crops
             _, predicted = torch.max(outputs_avg.data, 1)

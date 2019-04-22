@@ -12,7 +12,7 @@ import torch.nn as nn
 '''
 
 class ACCNN(nn.Module):
-    def __init__(self, n_classes, pre_trained=False, root_pre_path='', data_set='FER2013', fold=2):
+    def __init__(self, n_classes, pre_trained=False, root_pre_path='', data_set='FER2013', fold=2, virtualize=False):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACCNN, self).__init__()
         self.input_size = 223
@@ -38,6 +38,7 @@ class ACCNN(nn.Module):
             nn.Linear(20, n_classes),
             nn.Softmax(1),
         )
+        self.virtualize = virtualize
         self.features_out = []
         self.best_acc = 0.
         self.best_acc_epoch = -1
@@ -67,7 +68,8 @@ class ACCNN(nn.Module):
         # print(x.size())
         x = self.features(x)
         # print(x.size())
-        self.features_out.append(x.clone())
+        if self.virtualize:
+            self.features_out.append(x.clone())
         x = x.view(-1, self.num_flat_features(x))
         # print(x.size())
         x = self.classifier(x)
@@ -81,6 +83,8 @@ class ACCNN(nn.Module):
             num_features *= s
         return num_features
 
+    def clean_features_out(self):
+        self.features_out = []
 
 if __name__ == "__main__":
     n_classes = 7
