@@ -9,3 +9,5 @@ if __name__ == "__main__":
             command = "python train_test.py --dataset %s --model %s" % (dataset, net)
             print(command)
             os.system(command)
+
+# python train_test.py --dataset JAFFE --model AlexNet

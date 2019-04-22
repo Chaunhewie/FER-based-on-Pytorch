@@ -19,7 +19,7 @@ class ACCNN(nn.Module):
         # x size [BATCHSIZE, 1, 48, 48]
         self.features = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=2),   # 32, 110, 110
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
             nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 53, 53
             nn.ReLU(inplace=True),
             nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 24, 24

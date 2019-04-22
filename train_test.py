@@ -176,7 +176,7 @@ def train(epoch, jump_out_lr=-1.):
         # utils.clip_gradient(optimizer, 0.1)
         optimizer.step()
 
-        train_loss += loss.data
+        train_loss += float(loss.data)
         _, predicted = torch.max(outputs.data, 1)  # torch.max() 加上dim参数后，返回值为 max_value, max_value_index
         if target_type == 'ls':
             ground_value = targets.data
@@ -192,7 +192,7 @@ def train(epoch, jump_out_lr=-1.):
         total += targets.size(0)
         correct += predicted.eq(ground_value.data).cpu().sum()
         # print("equal: ", predicted.eq(ground_value.data).cpu())
-        cur_train_acc = (100. * correct / total).item()
+        cur_train_acc = float((100. * correct / total).item())
 
         utils.progress_bar(batch_idx, len(train_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)' %
                            (train_loss / (batch_idx + 1), cur_train_acc, correct, total))
@@ -227,7 +227,7 @@ def test(epoch):
             outputs_avg = outputs
 
             loss = criterion(outputs_avg, targets)
-            private_test_loss += loss.data
+            private_test_loss += float(loss.data)
             _, predicted = torch.max(outputs_avg.data, 1)
             if target_type == 'ls':
                 ground_value = targets.data
@@ -242,7 +242,7 @@ def test(epoch):
 
             total += targets.size(0)
             correct += predicted.eq(ground_value.data).cpu().sum()
-            cur_test_acc = (100. * correct / total).item()
+            cur_test_acc = float((100. * correct / total).item())
 
             utils.progress_bar(batch_idx, len(test_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (private_test_loss / (batch_idx + 1), cur_test_acc, correct, total))
