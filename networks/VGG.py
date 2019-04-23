@@ -81,7 +81,7 @@ def vgg11_bn(**kwargs):
     return model
 
 
-def vgg13(pretrained=False, **kwargs):
+def vgg13(**kwargs):
     """
     VGG 13-layer model (configuration "B")
     """
@@ -113,7 +113,7 @@ def vgg16_bn(**kwargs):
     return model
 
 
-def vgg19(pretrained=False, **kwargs):
+def vgg19(**kwargs):
     """
     VGG 19-layer model (configuration "E")
     """
@@ -121,7 +121,7 @@ def vgg19(pretrained=False, **kwargs):
     return model
 
 
-def vgg19_bn(pretrained=False, **kwargs):
+def vgg19_bn(**kwargs):
     """
     VGG 19-layer model (configuration 'E') with batch normalization
     """
