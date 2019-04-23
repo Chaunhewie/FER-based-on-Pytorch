@@ -33,7 +33,7 @@ def set_lr(optimizer, lr):
 
 def clip_gradient(optimizer, grad_clip):
     for group in optimizer.param_groups:
-        #print(group['params'])
+        # print(group['params'])
         for param in group['params']:
             param.grad.data.clamp_(-grad_clip, grad_clip)
 
@@ -55,3 +55,16 @@ def draw_img(img, save_path="", plt_show=True, log_enabled=True):
         plt.show()
     else:
         plt.close('all')
+
+
+def num_of_parameters_of_net(net):
+    num_of_parameters = 0
+    for name, parameters in net.named_parameters():
+        print(name, ':', parameters.size())
+        # print(parameters)
+        num = 1
+        for i in parameters.size():
+            num *= i
+        print(num)
+        num_of_parameters += num
+    return num_of_parameters

@@ -61,17 +61,10 @@ class ACNN(nn.Module):
 
 
 if __name__ == "__main__":
+    import sys
+    sys.path.append("..")
+    from utils.utils import num_of_parameters_of_net
     n_classes = 7
     net = ACNN(n_classes=n_classes)
     print(net)
-
-    num_of_parameters = 0
-    for name, parameters in net.named_parameters():
-        print(name, ':', parameters.size())
-        # print(parameters)
-        num = 1
-        for i in parameters.size():
-            num *= i
-        print(num)
-        num_of_parameters += num
-    print(num_of_parameters)
+    print("num_of_parameters_of_net: ", num_of_parameters_of_net(net))

@@ -72,7 +72,7 @@ def test_draw_features_and_weights_of_net():
     from networks.ACNN import ACNN
     from networks.ACCNN import ACCNN
     from networks.AlexNet import AlexNet
-    from dal.CKPlus48_DataSet import CKPlus48
+    from dal.CKPlus_DataSet import CKPlus48
     from dal.FER2013_DataSet import FER2013
     from dal.JAFFE_DataSet import JAFFE
 

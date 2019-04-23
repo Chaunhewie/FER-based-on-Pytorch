@@ -14,8 +14,9 @@ from networks.ACNN import ACNN
 from networks.ACCNN import ACCNN
 from networks.AlexNet import AlexNet
 from networks.VGG import vgg11_bn, vgg13_bn, vgg16_bn, vgg19_bn
+from networks.ResNet import resnet18, resnet34, resnet50, resnet101, resnet152
 from dal.JAFFE_DataSet import JAFFE
-from dal.CKPlus48_DataSet import CKPlus48
+from dal.CKPlus_DataSet import CKPlus
 from dal.FER2013_DataSet import FER2013
 import transforms.transforms as transforms
 import utils.utils as utils
@@ -24,7 +25,8 @@ use_cuda = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if use_cuda else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
 print('cuda available: ', use_cuda)
 print('using DEVICE: ', DEVICE)
-enabled_nets = ["ACNN", "ACCNN", "AlexNet", "VGG11", "VGG13", "VGG16", "VGG19"]
+enabled_nets = ["ACNN", "ACCNN", "AlexNet", "VGG11", "VGG13", "VGG16", "VGG19", "ResNet18", "ResNet34", "ResNet50",
+                "ResNet101", "ResNet152"]
 enabled_datasets = ["JAFFE", "CK+", "FER2013"]
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
@@ -33,14 +35,18 @@ parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 # parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
 # parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
 # parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
-parser.add_argument('--model', default='VGG11', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='VGG11', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG13', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG16', type=str, help='CNN architecture')
-# parser.add_argument('--model', default='VGG19', type=str, help='CNN architecture')
+parser.add_argument('--model', default='VGG19', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='ResNet18', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='ResNet34', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='ResNet50', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='ResNet101', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='ResNet152', type=str, help='CNN architecture')
 
 # 数据集选择
 parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
-# parser.add_argument('--dataset', default='CK+48', type=str, help='dataset')
 # parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
 # parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
@@ -73,20 +79,30 @@ n_classes = 7
 net_to_save_dir = "Saved_Models"
 net_to_save_path = os.path.join(net_to_save_dir, opt.dataset + '_' + opt.model + "_" + str(opt.save_number))
 saved_model_name = 'Best_model.t7'
-if opt.model == "ACNN":
+if opt.model.lower() == "ACNN".lower():
     net = ACNN(n_classes=n_classes).to(DEVICE)
-elif opt.model == "ACCNN":
+elif opt.model.lower() == "ACCNN".lower():
     net = ACCNN(n_classes=n_classes).to(DEVICE)
-elif opt.model == "AlexNet":
+elif opt.model.lower() == "AlexNet".lower():
     net = AlexNet(n_classes=n_classes).to(DEVICE)
-elif opt.model == "VGG11":
+elif opt.model.lower() == "VGG11".lower():
     net = vgg11_bn(n_classes=n_classes).to(DEVICE)
-elif opt.model == "VGG13":
+elif opt.model.lower() == "VGG13".lower():
     net = vgg13_bn(n_classes=n_classes).to(DEVICE)
-elif opt.model == "VGG16":
+elif opt.model.lower() == "VGG16".lower():
     net = vgg16_bn(n_classes=n_classes).to(DEVICE)
-elif opt.model == "VGG19":
+elif opt.model.lower() == "VGG19".lower():
     net = vgg19_bn(n_classes=n_classes).to(DEVICE)
+elif opt.model.lower() == "ResNet18".lower():
+    net = resnet18(n_classes=n_classes).to(DEVICE)
+elif opt.model.lower() == "ResNet34".lower():
+    net = resnet34(n_classes=n_classes).to(DEVICE)
+elif opt.model.lower() == "ResNet50".lower():
+    net = resnet50(n_classes=n_classes).to(DEVICE)
+elif opt.model.lower() == "ResNet101".lower():
+    net = resnet101(n_classes=n_classes).to(DEVICE)
+elif opt.model.lower() == "ResNet152".lower():
+    net = resnet152(n_classes=n_classes).to(DEVICE)
 else:
     net = None
     assert("opt.model should be in %s, but got %s" % (enabled_nets, opt.model))
@@ -142,12 +158,12 @@ print("------------Preparing Data...----------------")
 if opt.dataset == "JAFFE":
     train_data = JAFFE(is_train=True, transform=transform_train, target_type=target_type)
     test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type)
-elif opt.dataset == "CK+48":
-    train_data = CKPlus48(is_train=True, transform=transform_train, target_type=target_type)
-    test_data = CKPlus48(is_train=False, transform=transform_test, target_type=target_type)
+# elif opt.dataset == "CK+48":
+#     train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type, img_dir_pre_path="data/CK+48")
+#     test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type, img_dir_pre_path="data/CK+48")
 elif opt.dataset == "CK+":
-    train_data = CKPlus48(is_train=True, transform=transform_train, target_type=target_type, img_dir_pre_path="data/CK+")
-    test_data = CKPlus48(is_train=False, transform=transform_test, target_type=target_type, img_dir_pre_path="data/CK+")
+    train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type)
+    test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type)
 elif opt.dataset == "FER2013":
     train_data = FER2013(is_train=True, private_test=True, transform=transform_train, target_type=target_type)
     test_data = FER2013(is_train=False, private_test=True, transform=transform_test, target_type=target_type)

@@ -1,6 +1,6 @@
 # coding=utf-8
 import os
-enabled_nets = ["ACNN", "ACCNN", "AlexNet", "VGG11", "VGG13", "VGG16", "VGG19"]
+enabled_nets = ["ACNN", "ACCNN", "AlexNet", "VGG11", "VGG19", "ResNet18", "ResNet50", "ResNet152"]
 enabled_datasets = ["JAFFE", "CK+", "FER2013"]
 
 if __name__ == "__main__":

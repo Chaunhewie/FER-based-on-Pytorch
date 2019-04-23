@@ -127,3 +127,22 @@ def vgg19_bn(pretrained=False, **kwargs):
     """
     model = VGG(make_layers(cfg['E'], batch_norm=True), **kwargs)
     return model
+
+
+if __name__ == "__main__":
+    import sys
+    sys.path.append("..")
+    from utils.utils import num_of_parameters_of_net
+    n_classes = 7
+    net = vgg11_bn(n_classes=n_classes)
+    print(net)
+    print("num_of_parameters_of_net: ", num_of_parameters_of_net(net))
+    net = vgg13_bn(n_classes=n_classes)
+    print(net)
+    print("num_of_parameters_of_net: ", num_of_parameters_of_net(net))
+    net = vgg16_bn(n_classes=n_classes)
+    print(net)
+    print("num_of_parameters_of_net: ", num_of_parameters_of_net(net))
+    net = vgg19_bn(n_classes=n_classes)
+    print(net)
+    print("num_of_parameters_of_net: ", num_of_parameters_of_net(net))

@@ -23,8 +23,8 @@ All_People_Indexes = ['S119', 'S130', 'S127', 'S073', 'S067', 'S107', 'S092', 'S
 # print(All_People_Indexes)
 
 
-class CKPlus48(data.Dataset):
-    """`CK+48 Dataset.
+class CKPlus(data.Dataset):
+    """`CK+ Dataset & CK+48 Dataset, CK+48 is aborted after adding face location detect and crop operation.
     Args:
         is_train (bool, optional): If True, creates dataset from training set, otherwise creates from test set.
         transform (callable, optional): A function/transform that  takes in an PIL image and returns a transformed version.
@@ -40,7 +40,7 @@ class CKPlus48(data.Dataset):
         we choose images of 12 person, whose name is in self.test_people_names, for testing
     """
 
-    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/CK+48"):
+    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/CK+"):
         if target_type == "fa":
             self.classes_map = {'anger': np.array([1., 0., 0., 0., 0., 0., 0.], dtype=float),
                                 'contempt': np.array([0., 1., 0., 0., 0., 0., 0.], dtype=float),
@@ -142,8 +142,8 @@ class CKPlus48(data.Dataset):
 
 
 if __name__ == "__main__":
-    c1 = CKPlus48(is_train=True, img_dir_pre_path="../data/CK+")
-    c2 = CKPlus48(is_train=False, img_dir_pre_path="../data/CK+")
+    c1 = CKPlus(is_train=True, img_dir_pre_path="../data/CK+")
+    c2 = CKPlus(is_train=False, img_dir_pre_path="../data/CK+")
     print(c1.__len__(), c2.__len__())
 
     from utils.utils import draw_img
