@@ -33,12 +33,12 @@ parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
 # parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
-# parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
+parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
 # parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG11', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG13', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG16', type=str, help='CNN architecture')
-parser.add_argument('--model', default='VGG19', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='VGG19', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet18', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet34', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet50', type=str, help='CNN architecture')
@@ -46,25 +46,25 @@ parser.add_argument('--model', default='VGG19', type=str, help='CNN architecture
 # parser.add_argument('--model', default='ResNet152', type=str, help='CNN architecture')
 
 # 数据集选择
-parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
+# parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
 # parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
-# parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
+parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
 # 存储的模型序号
-parser.add_argument('--save_number', default=3, type=int, help='save_number')
+parser.add_argument('--save_number', default=4, type=int, help='save_number')
 # 批次大小
-parser.add_argument('--bs', default=2, type=int, help='batch_size')
+parser.add_argument('--bs', default=4, type=int, help='batch_size')
 # 学习率
 parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 # epoch
-parser.add_argument('--epoch', default=2000, type=int, help='training epoch num')
+parser.add_argument('--epoch', default=500, type=int, help='training epoch num')
 # 每次获得到更优的准确率后，会进行一次存储，此选项选择是否从上次存储位置继续
-parser.add_argument('--resume', default=False, type=bool, help='resume training from last checkpoint')
+parser.add_argument('--resume', default=True, type=bool, help='resume training from last checkpoint')
 # 表示默认从第 $lrd_se 次epoch开始进行lr的递减，应该小于 $jump_out_epoch
-parser.add_argument('--lrd_se', default=1000, type=int, help='learning rate decay start epoch')
+parser.add_argument('--lrd_se', default=400, type=int, help='learning rate decay start epoch')
 # 表示默认每经过2次epoch进行一次递减
-parser.add_argument('--lrd_s', default=50, type=int, help='learning rate decay step')
+parser.add_argument('--lrd_s', default=10, type=int, help='learning rate decay step')
 # 表示每次的lr的递减率，默认每递减一次乘一次0.9
 parser.add_argument('--lrd_r', default=0.9, type=float, help='learning rate decay rate')
 opt = parser.parse_args()

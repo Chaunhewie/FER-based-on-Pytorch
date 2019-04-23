@@ -12,9 +12,15 @@ def crop_face_area_and_get_landmarks(img, image_size=400):
     # 图片转化为灰度图
     img = img.convert("L")
     # 获取图片的人脸定位
-    top, right, bottom, left = face_recognition.face_locations(np.array(img))[0]
+    face_locations = face_recognition.face_locations(np.array(img))  # fer2013存在无法识别的图片
+    if len(face_locations) <= 0:
+        return img, None, None
+    top, right, bottom, left = face_locations[0]
     # 脸部关键点标记获取
-    face_landmarks = face_recognition.face_landmarks(np.array(img))[0]
+    face_landmarks = face_recognition.face_landmarks(np.array(img))
+    if len(face_landmarks) <= 0:
+        return img, None, None
+    face_landmarks = face_landmarks[0]
     # 扩充脸部区域
     for name, plot_list in face_landmarks.items():
         for plot in plot_list:

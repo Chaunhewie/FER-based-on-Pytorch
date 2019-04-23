@@ -72,6 +72,9 @@ class FER2013(data.Dataset):
                 if is_train:
                     img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
                     img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    if face_box is None or face_landmarks is None:
+                        self.train_data_num -= 1
+                        continue
                     self.train_data.append(img)
                     self.train_classes.append(self.classes_map[line[0]])
                     self.train_box.append(face_box)
@@ -81,6 +84,9 @@ class FER2013(data.Dataset):
                 if not is_train:
                     img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
                     img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    if face_box is None or face_landmarks is None:
+                        self.test_data_num -= 1
+                        continue
                     self.test_data.append(img)
                     self.test_classes.append(self.classes_map[line[0]])
                     self.test_box.append(face_box)
