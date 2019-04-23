@@ -13,6 +13,7 @@ import argparse
 from networks.ACNN import ACNN
 from networks.ACCNN import ACCNN
 from networks.AlexNet import AlexNet
+from networks.VGG import vgg11_bn, vgg13_bn, vgg16_bn, vgg19_bn
 from dal.JAFFE_DataSet import JAFFE
 from dal.CKPlus48_DataSet import CKPlus48
 from dal.FER2013_DataSet import FER2013
@@ -23,15 +24,19 @@ use_cuda = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if use_cuda else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
 print('cuda available: ', use_cuda)
 print('using DEVICE: ', DEVICE)
-enabled_nets = ["ACNN", "ACCNN", "AlexNet"]
-enabled_datasets = ["JAFFE", "CK+48", "CK+", "FER2013"]
+enabled_nets = ["ACNN", "ACCNN", "AlexNet", "VGG11", "VGG13", "VGG16", "VGG19"]
+enabled_datasets = ["JAFFE", "CK+", "FER2013"]
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
 # parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
 # parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
-parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
+parser.add_argument('--model', default='VGG11', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='VGG13', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='VGG16', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='VGG19', type=str, help='CNN architecture')
 
 # 数据集选择
 parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
@@ -43,13 +48,13 @@ parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
 # 存储的模型序号
 parser.add_argument('--save_number', default=3, type=int, help='save_number')
 # 批次大小
-parser.add_argument('--bs', default=32, type=int, help='batch_size')
+parser.add_argument('--bs', default=2, type=int, help='batch_size')
 # 学习率
 parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 # epoch
 parser.add_argument('--epoch', default=2000, type=int, help='training epoch num')
 # 每次获得到更优的准确率后，会进行一次存储，此选项选择是否从上次存储位置继续
-parser.add_argument('--resume', default=True, type=bool, help='resume training from last checkpoint')
+parser.add_argument('--resume', default=False, type=bool, help='resume training from last checkpoint')
 # 表示默认从第 $lrd_se 次epoch开始进行lr的递减，应该小于 $jump_out_epoch
 parser.add_argument('--lrd_se', default=1000, type=int, help='learning rate decay start epoch')
 # 表示默认每经过2次epoch进行一次递减
@@ -74,6 +79,14 @@ elif opt.model == "ACCNN":
     net = ACCNN(n_classes=n_classes).to(DEVICE)
 elif opt.model == "AlexNet":
     net = AlexNet(n_classes=n_classes).to(DEVICE)
+elif opt.model == "VGG11":
+    net = vgg11_bn(n_classes=n_classes).to(DEVICE)
+elif opt.model == "VGG13":
+    net = vgg13_bn(n_classes=n_classes).to(DEVICE)
+elif opt.model == "VGG16":
+    net = vgg16_bn(n_classes=n_classes).to(DEVICE)
+elif opt.model == "VGG19":
+    net = vgg19_bn(n_classes=n_classes).to(DEVICE)
 else:
     net = None
     assert("opt.model should be in %s, but got %s" % (enabled_nets, opt.model))
