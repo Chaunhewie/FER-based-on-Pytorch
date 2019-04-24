@@ -58,13 +58,13 @@ parser.add_argument('--bs', default=32, type=int, help='batch_size')
 # 学习率
 parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 # epoch
-parser.add_argument('--epoch', default=1000, type=int, help='training epoch num')
+parser.add_argument('--epoch', default=200, type=int, help='training epoch num')
 # 每次获得到更优的准确率后，会进行一次存储，此选项选择是否从上次存储位置继续
 parser.add_argument('--resume', default=True, type=bool, help='resume training from last checkpoint')
 # 表示默认从第 $lrd_se 次epoch开始进行lr的递减，应该小于 $jump_out_epoch
-parser.add_argument('--lrd_se', default=900, type=int, help='learning rate decay start epoch')
+parser.add_argument('--lrd_se', default=180, type=int, help='learning rate decay start epoch')
 # 表示默认每经过2次epoch进行一次递减
-parser.add_argument('--lrd_s', default=10, type=int, help='learning rate decay step')
+parser.add_argument('--lrd_s', default=2, type=int, help='learning rate decay step')
 # 表示每次的lr的递减率，默认每递减一次乘一次0.9
 parser.add_argument('--lrd_r', default=0.9, type=float, help='learning rate decay rate')
 opt = parser.parse_args()
@@ -79,6 +79,8 @@ n_classes = 7
 net_to_save_dir = "Saved_Models"
 net_to_save_path = os.path.join(net_to_save_dir, opt.dataset + '_' + opt.model + "_" + str(opt.save_number))
 saved_model_name = 'Best_model.t7'
+model_over_flag_name = "__%d_success__" % (opt.epoch)
+over_flag = False
 if opt.model.lower() == "ACNN".lower():
     net = ACNN(n_classes=n_classes).to(DEVICE)
 elif opt.model.lower() == "ACCNN".lower():
@@ -111,6 +113,9 @@ if opt.resume:
     # Load checkpoint.
     print('==> Loading Model Parameters...')
     if os.path.exists(os.path.join(net_to_save_path, saved_model_name)):
+        if os.path.exists(os.path.join(net_to_save_path, model_over_flag_name)):
+            print("Model trained over flag checked!")
+            over_flag = True
         assert os.path.isdir(net_to_save_path), 'Error: no checkpoint directory found!'
         checkpoint = torch.load(os.path.join(net_to_save_path, saved_model_name))
         net.load_state_dict(checkpoint['net'])
@@ -220,7 +225,7 @@ def train(epoch, jump_out_lr=-1.):
         total += targets.size(0)
         correct += predicted.eq(ground_value.data).cpu().sum()
         # print("equal: ", predicted.eq(ground_value.data).cpu())
-        cur_train_acc = float((float(correct) / float(total) * 100.).item())
+        cur_train_acc = float(correct) / float(total) * 100.
 
         utils.progress_bar(batch_idx, len(train_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)' %
                            (train_loss / (batch_idx + 1), cur_train_acc, correct, total))
@@ -276,7 +281,7 @@ def test(epoch):
 
             total += targets.size(0)
             correct += predicted.eq(ground_value.data).cpu().sum()
-            cur_test_acc = float((float(correct) / float(total) * 100.).item())
+            cur_test_acc = float(correct) / float(total) * 100.
 
             utils.progress_bar(batch_idx, len(test_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                          % (private_test_loss / (batch_idx + 1), cur_test_acc, correct, total))
@@ -306,21 +311,31 @@ def test(epoch):
         torch.save(state, os.path.join(net_to_save_path, saved_model_name))
 
 
+def save_over_flag():
+    file_path = os.path.join(net_to_save_path, model_over_flag_name)
+    with open(file_path, "w+", encoding="utf-8") as file:
+        file.write(train_acc_map.__str__())
+        file.write("\n")
+        file.write(train_acc_map.__str__())
+        file.write("\n")
+
+
 if __name__ == "__main__":
+    if not over_flag:
+        for epoch in range(start_epoch, opt.epoch, 1):
+            print('\n------------Epoch: %d-------------' % epoch)
+            train(epoch)
+            # for parameters in net.parameters():
+            #     print(parameters.size())
+            #     print(parameters[0][0][0])
+            #     break
 
-    for epoch in range(start_epoch, opt.epoch, 1):
-        print('\n------------Epoch: %d-------------' % epoch)
-        train(epoch)
-        # for parameters in net.parameters():
-        #     print(parameters.size())
-        #     print(parameters[0][0][0])
-        #     break
-
-        # for name,parameters in net.named_parameters():
-        #     print(name,':',parameters.size())
-        #     print(parameters)
-        #     break
-        test(epoch)
-    print(train_acc_map)
-    print(test_acc_map)
-
+            # for name,parameters in net.named_parameters():
+            #     print(name,':',parameters.size())
+            #     print(parameters)
+            #     break
+            test(epoch)
+        print(train_acc_map)
+        print(test_acc_map)
+        save_over_flag()
+    print("Trained Over")
