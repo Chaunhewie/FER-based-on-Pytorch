@@ -31,7 +31,7 @@ class FER2013(data.Dataset):
             PublicTest: anger:467, disgust:56, fear:496, happiness:895, sadness:653, surprise:415 and neutral:607
     """
 
-    def __init__(self, is_train=True, private_test=True, transform=None, target_type="fa", img_dir_pre_path="data/fer2013"):
+    def __init__(self, is_train=True, private_test=True, transform=None, target_type="fa", img_dir_pre_path="data/fer2013", using_fl=False):
         if target_type == "fa":
             self.classes_map = {0: np.array([1., 0., 0., 0., 0., 0., 0.], dtype=float),
                                 1: np.array([0., 1., 0., 0., 0., 0., 0.], dtype=float),
@@ -54,18 +54,15 @@ class FER2013(data.Dataset):
         self.transform = transform
         self.is_train = is_train  # train set or test set
         self.private_test = private_test
+        self.using_fl = using_fl
 
         np_img_data = np.array(pd.read_csv(self.img_data_file_path))
         self.train_data = []
         self.train_data_num = 0
         self.train_classes = []
-        self.train_box = []
-        self.train_landmarks = []
         self.test_data = []
         self.test_data_num = 0
         self.test_classes = []
-        self.test_box = []
-        self.test_landmarks = []
         for line in np_img_data:
             if line[2] == 'Training':
                 self.train_data_num += 1
@@ -75,10 +72,12 @@ class FER2013(data.Dataset):
                     if face_box is None or face_landmarks is None:
                         self.train_data_num -= 1
                         continue
-                    self.train_data.append(img)
+                    if using_fl:
+                        landmarks_img = get_img_with_landmarks(img, face_landmarks)
+                        self.train_data.append(landmarks_img)
+                    else:
+                        self.train_data.append(img)
                     self.train_classes.append(self.classes_map[line[0]])
-                    self.train_box.append(face_box)
-                    self.train_landmarks.append(face_landmarks)
             elif private_test and line[2] == 'PrivateTest':
                 self.test_data_num += 1
                 if not is_train:
@@ -87,10 +86,12 @@ class FER2013(data.Dataset):
                     if face_box is None or face_landmarks is None:
                         self.test_data_num -= 1
                         continue
-                    self.test_data.append(img)
+                    if using_fl:
+                        landmarks_img = get_img_with_landmarks(img, face_landmarks)
+                        self.test_data.append(landmarks_img)
+                    else:
+                        self.test_data.append(img)
                     self.test_classes.append(self.classes_map[line[0]])
-                    self.test_box.append(face_box)
-                    self.test_landmarks.append(face_landmarks)
             elif not private_test and line[2] == 'PublicTest':
                 self.test_data_num += 1
                 if not is_train:
@@ -99,10 +100,12 @@ class FER2013(data.Dataset):
                     if face_box is None or face_landmarks is None:
                         self.train_data_num -= 1
                         continue
-                    self.test_data.append(img)
+                    if using_fl:
+                        landmarks_img = get_img_with_landmarks(img, face_landmarks)
+                        self.test_data.append(landmarks_img)
+                    else:
+                        self.test_data.append(img)
                     self.test_classes.append(self.classes_map[line[0]])
-                    self.test_box.append(face_box)
-                    self.test_landmarks.append(face_landmarks)
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
 
     def __getitem__(self, index):
@@ -117,21 +120,14 @@ class FER2013(data.Dataset):
             return None, None, None, None
 
         if self.is_train:
-            img, cla, box, landmarks = self.train_data[index], self.train_classes[index], self.train_box[index], \
-                                       self.train_landmarks[index]
+            img, cla = self.train_data[index], self.train_classes[index]
         else:
-            img, cla, box, landmarks = self.test_data[index], self.test_classes[index], self.test_box[index], \
-                                       self.test_landmarks[index]
+            img, cla = self.test_data[index], self.test_classes[index]
 
-        # 使用landmarks来剪裁img
-        landmarks_img = get_img_with_landmarks(img, landmarks)
         # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
         if self.transform is not None:
             img = self.transform(img)
-        if self.transform is not None:
-            landmarks_img = self.transform(landmarks_img)
-
-        return img, cla, box, landmarks_img
+        return img, cla
 
     def __len__(self):
         """

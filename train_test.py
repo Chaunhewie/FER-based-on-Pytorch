@@ -33,7 +33,7 @@ enabled_datasets = ["JAFFE", "CK+", "FER2013"]
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
-# parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
+parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
 # parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
 # parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG11', type=str, help='CNN architecture')
@@ -42,18 +42,18 @@ parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 # parser.add_argument('--model', default='VGG19', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet18', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet34', type=str, help='CNN architecture')
-parser.add_argument('--model', default='ResNet50', type=str, help='CNN architecture')
+# parser.add_argument('--model', default='ResNet50', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet101', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet152', type=str, help='CNN architecture')
 
 # 数据集选择
-# parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
-parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
+parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
+# parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
 # parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
 # 是否使用面部标记点进行训练
-parser.add_argument('--fl', default=False, type=bool, help='whether to use face landmarks to train')
+parser.add_argument('--fl', default=True, type=bool, help='whether to use face landmarks to train')
 # 存储的模型序号
 parser.add_argument('--save_number', default=5, type=int, help='save_number')
 # 批次大小
@@ -171,17 +171,19 @@ if not over_flag:
 
     print("------------Preparing Data...----------------")
     if opt.dataset == "JAFFE":
-        train_data = JAFFE(is_train=True, transform=transform_train, target_type=target_type)
-        test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type)
+        train_data = JAFFE(is_train=True, transform=transform_train, target_type=target_type, using_fl=opt.fl)
+        test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type, using_fl=opt.fl)
     # elif opt.dataset == "CK+48":
     #     train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type, img_dir_pre_path="data/CK+48")
     #     test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type, img_dir_pre_path="data/CK+48")
     elif opt.dataset == "CK+":
-        train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type)
-        test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type)
+        train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type, using_fl=opt.fl)
+        test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type, using_fl=opt.fl)
     elif opt.dataset == "FER2013":
-        train_data = FER2013(is_train=True, private_test=True, transform=transform_train, target_type=target_type)
-        test_data = FER2013(is_train=False, private_test=True, transform=transform_test, target_type=target_type)
+        train_data = FER2013(is_train=True, private_test=True, transform=transform_train, target_type=target_type,
+                             using_fl=opt.fl)
+        test_data = FER2013(is_train=False, private_test=True, transform=transform_test, target_type=target_type,
+                            using_fl=opt.fl)
     else:
         assert("opt.dataset should be in %s, but got %s" % (enabled_datasets, opt.dataset))
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.bs, shuffle=True)
@@ -207,9 +209,7 @@ def train(epoch, jump_out_lr=-1.):
     total = 0
     cur_train_acc = 0.
     time_start = time.time()
-    for batch_idx, (inputs, targets, _, landmarks_inputs) in enumerate(train_loader):
-        if opt.fl:
-            inputs = landmarks_inputs
+    for batch_idx, (inputs, targets) in enumerate(train_loader):
         if use_cuda:
             inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
         optimizer.zero_grad()
@@ -267,9 +267,7 @@ def test(epoch):
     correct_map = [0, 0, 0, 0, 0, 0, 0]
     time_start = time.time()
     with torch.no_grad():
-        for batch_idx, (inputs, targets, _, landmarks_inputs) in enumerate(test_loader):
-            if opt.fl:
-                inputs = landmarks_inputs
+        for batch_idx, (inputs, targets) in enumerate(test_loader):
             bs, c, h, w = np.shape(inputs)
             # bs, ncrops, c, h, w = np.shape(inputs)
             inputs = inputs.view(-1, c, h, w)

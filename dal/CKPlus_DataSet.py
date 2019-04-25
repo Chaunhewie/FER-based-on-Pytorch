@@ -40,7 +40,7 @@ class CKPlus(data.Dataset):
         we choose images of 12 person, whose name is in self.test_people_names, for testing
     """
 
-    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/CK+"):
+    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/CK+", using_fl=False):
         if target_type == "fa":
             self.classes_map = {'anger': np.array([1., 0., 0., 0., 0., 0., 0.], dtype=float),
                                 'contempt': np.array([0., 1., 0., 0., 0., 0., 0.], dtype=float),
@@ -62,6 +62,7 @@ class CKPlus(data.Dataset):
         self.img_dir_pre_path = img_dir_pre_path
         self.transform = transform
         self.is_train = is_train  # train set or test set
+        self.using_fl = using_fl
 
         split_index = int(len(All_People_Indexes)*k_folder/10)
         if split_index < 1:
@@ -73,13 +74,9 @@ class CKPlus(data.Dataset):
         self.train_data = []
         self.train_data_num = 0
         self.train_classes = []
-        self.train_box = []
-        self.train_landmarks = []
         self.test_data = []
         self.test_data_num = 0
         self.test_classes = []
-        self.test_box = []
-        self.test_landmarks = []
         classes = os.listdir(self.img_dir_pre_path)
         for c in classes:
             img_file_names = os.listdir(os.path.join(self.img_dir_pre_path, c))
@@ -92,10 +89,12 @@ class CKPlus(data.Dataset):
                         if face_box is None or face_landmarks is None:
                             self.train_data_num -= 1
                             continue
-                        self.train_data.append(img)
+                        if using_fl:
+                            landmarks_img = get_img_with_landmarks(img, face_landmarks)
+                            self.train_data.append(landmarks_img)
+                        else:
+                            self.train_data.append(img)
                         self.train_classes.append(self.classes_map[c])
-                        self.train_box.append(face_box)
-                        self.train_landmarks.append(face_landmarks)
                 elif img_file_name[:4] in self.test_people_indexes:
                     self.test_data_num += 1
                     if not is_train:
@@ -104,10 +103,12 @@ class CKPlus(data.Dataset):
                         if face_box is None or face_landmarks is None:
                             self.train_data_num -= 1
                             continue
-                        self.test_data.append(img)
+                        if using_fl:
+                            landmarks_img = get_img_with_landmarks(img, face_landmarks)
+                            self.test_data.append(landmarks_img)
+                        else:
+                            self.test_data.append(img)
                         self.test_classes.append(self.classes_map[c])
-                        self.test_box.append(face_box)
-                        self.test_landmarks.append(face_landmarks)
                 else:
                     print("img:(%s,%s) is not belong to both of train or test set!" % (c, img_file_name))
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
@@ -124,21 +125,14 @@ class CKPlus(data.Dataset):
             return None, None, None, None
 
         if self.is_train:
-            img, cla, box, landmarks = self.train_data[index], self.train_classes[index], self.train_box[index], \
-                                       self.train_landmarks[index]
+            img, cla = self.train_data[index], self.train_classes[index]
         else:
-            img, cla, box, landmarks = self.test_data[index], self.test_classes[index], self.test_box[index], \
-                                       self.test_landmarks[index]
+            img, cla = self.test_data[index], self.test_classes[index]
 
-        # 使用landmarks来剪裁img
-        landmarks_img = get_img_with_landmarks(img, landmarks)
         # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
         if self.transform is not None:
             img = self.transform(img)
-        if self.transform is not None:
-            landmarks_img = self.transform(landmarks_img)
-
-        return img, cla, box, landmarks_img
+        return img, cla
 
     def __len__(self):
         """

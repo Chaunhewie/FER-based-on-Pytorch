@@ -12,8 +12,6 @@ train_batch_size = {"ACNN": 128, "ACCNN": 128, "AlexNet": 128, "VGG11": 12, "VGG
 # train_batch_size = {"ACNN": 128, "ACCNN": 128, "AlexNet": 128, "VGG11": 64, "VGG19": 32, "ResNet18": 64, "ResNet50": 48,
 #                     "ResNet152": 32}
 
-fl = False  # 是否使用face_landmarks进行训练
-
 if __name__ == "__main__":
     # begin_index = 0
     for dataset in enabled_datasets:
@@ -25,8 +23,8 @@ if __name__ == "__main__":
             epoch = train_epoch[net]
             lrd_se = int(epoch*0.8)
             lrd_s = int((epoch-lrd_se)/10)
-            command = "python train_test.py --dataset %s --model %s --bs %s --epoch %d --lrd_se %d --lrd_s %d --fl %r" \
-                      % (dataset, net, bs, epoch, lrd_se, lrd_s, fl)
+            command = "python train_test.py --dataset %s --model %s --bs %s --epoch %d --lrd_se %d --lrd_s %d" \
+                      % (dataset, net, bs, epoch, lrd_se, lrd_s)
             print(command)
             os.system(command)
 
