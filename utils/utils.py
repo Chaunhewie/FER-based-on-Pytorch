@@ -68,3 +68,4 @@ def num_of_parameters_of_net(net):
         print(num)
         num_of_parameters += num
     return num_of_parameters
+

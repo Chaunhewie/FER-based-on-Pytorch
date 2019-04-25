@@ -8,7 +8,14 @@ from matplotlib.lines import Line2D
 
 img_save_dir="Saved_Virtualizations"
 
+
 def crop_face_area_and_get_landmarks(img, image_size=400):
+    """
+    人脸定位并进行人脸的面部剪裁
+    :param img: 原图
+    :param image_size: 剪裁后的图片大小设置
+    :return: 剪裁后的图片，面部区域在原图中的位置，面部标记在剪裁后的图中的位置
+    """
     # 图片转化为灰度图
     img = img.convert("L")
     # 获取图片的人脸定位
@@ -37,8 +44,43 @@ def crop_face_area_and_get_landmarks(img, image_size=400):
     bottom_exp = int((bottom-top)*0.05)
     left_exp, right_exp = int((right-left)*0.1), int((right-left)*0.1)
     # 脸部剪裁
-    img = img.crop((left-left_exp, top-top_exp, right+right_exp, bottom+bottom_exp)).resize((image_size, image_size))  # , Image.ANTIALIAS
+    crop_loc = (left-left_exp, top-top_exp, right+right_exp, bottom+bottom_exp)
+    img = img.crop(crop_loc).resize((image_size, image_size))  # , Image.ANTIALIAS
+    # 更新面部标记点的位置
+    face_landmarks = face_recognition.face_landmarks(np.array(img))
+    if len(face_landmarks) <= 0:
+        return img, None, None
+    face_landmarks = face_landmarks[0]
     return img, face_box, face_landmarks
+
+
+def get_img_with_landmarks(img, landmarks, round_to_keep=15):
+    """
+    根据face landmarks来剪裁img，得到标记点附近的img图像
+    :param img: 原img
+    :param landmarks: 标记点
+    :param inplace: 是否直接操作原img
+    :param round_to_keep: 保留标记点周围的 round_to_keep 个像素点
+    :return: 剪裁后的img
+    """
+    point_map = {}
+    for name, points in landmarks.items():
+        for point in points:
+            for x_bias in range(-round_to_keep, round_to_keep+1, 1):
+                for y_bias in range(-round_to_keep, round_to_keep+1, 1):
+                    x, y = point[0]+x_bias, point[1]+y_bias
+                    if x not in point_map:
+                        point_map[x] = {}
+                    point_map[x][y] = True
+    img_arr = np.array(img)
+    row_num, col_num = img_arr.shape[0], img_arr.shape[1]
+    for y in range(row_num):
+        for x in range(col_num):
+            if x in point_map and y in point_map[x]:
+                continue
+            else:
+                img_arr[y][x] = 0.
+    return Image.fromarray(img_arr)
 
 
 if __name__ == "__main__":

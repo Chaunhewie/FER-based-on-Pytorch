@@ -2,7 +2,7 @@
 import os
 enabled_nets = ["ACCNN", "AlexNet", "VGG11", "VGG19", "ResNet18", "ResNet50", "ResNet152", "ACNN"]
 enabled_datasets = ["FER2013", "CK+", "JAFFE"]
-train_epoch = {"ACNN": 500, "ACCNN": 500, "AlexNet": 500, "VGG11": 200, "VGG19": 200, "ResNet18": 200, "ResNet50": 200,
+train_epoch = {"ACNN": 500, "ACCNN": 500, "AlexNet": 300, "VGG11": 200, "VGG19": 200, "ResNet18": 200, "ResNet50": 200,
                "ResNet152": 200}
 
 # 使用自己的电脑

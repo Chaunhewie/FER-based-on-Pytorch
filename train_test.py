@@ -52,6 +52,8 @@ parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
 # parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
 
 # Other Parameters
+# 是否使用面部标记点进行训练
+parser.add_argument('--fl', default=False, type=bool, help='whether to use face landmarks to train')
 # 存储的模型序号
 parser.add_argument('--save_number', default=4, type=int, help='save_number')
 # 批次大小
@@ -78,10 +80,16 @@ Train_acc, Test_acc = 0., 0.
 print("------------Preparing Model...----------------")
 n_classes = 7
 net_to_save_dir = "Saved_Models"
-net_to_save_path = os.path.join(net_to_save_dir, opt.dataset + '_' + opt.model + "_" + str(opt.save_number))
-saved_model_name = 'Best_model.t7'
-model_over_flag_name = "__%d_success__" % (opt.epoch)
-over_flag = False
+net_to_save_path = os.path.join(net_to_save_dir, str(opt.save_number), opt.dataset+'_'+opt.model+'_'+str(opt.save_number))
+if opt.fl:
+    saved_model_name = "Best_model_fl.t7"
+else:
+    saved_model_name = "Best_model.t7"
+if opt.fl:
+    model_over_flag_name = "__%d_success_fl__" % (opt.epoch)
+else:
+    model_over_flag_name = "__%d_success__" % (opt.epoch)
+over_flag = False  # 如果已经成功训练完，就可以结束了
 if opt.model.lower() == "ACNN".lower():
     net = ACNN(n_classes=n_classes).to(DEVICE)
 elif opt.model.lower() == "ACCNN".lower():
@@ -127,57 +135,58 @@ if opt.resume:
         print("Checkout File not Found, No initialization.")
 print("------------%s Model Already be Prepared------------" % opt.model)
 
-# for gray images
-IMG_MEAN = [0.5]
-IMG_STD = [0.225]
-# for RGB images
-# IMG_MEAN = [0.485, 0.456, 0.406]
-# IMG_STD = [0.229, 0.224, 0.225]
+if not over_flag:
+    # for gray images
+    IMG_MEAN = [0.5]
+    IMG_STD = [0.225]
+    # for RGB images
+    # IMG_MEAN = [0.485, 0.456, 0.406]
+    # IMG_STD = [0.229, 0.224, 0.225]
 
-input_img_size = net.input_size
-transform_train = transforms.Compose([
-    transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomRotation(30),
-    transforms.ToTensor(),
-    transforms.Normalize(IMG_MEAN, IMG_STD),
-])
+    input_img_size = net.input_size
+    transform_train = transforms.Compose([
+        transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(30),
+        transforms.ToTensor(),
+        transforms.Normalize(IMG_MEAN, IMG_STD),
+    ])
 
-test_img_size = int(input_img_size * 1.1)  # 测试时，图片resize大小
-transform_test = transforms.Compose([
-    transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
-    transforms.ToTensor(),
-    transforms.Normalize(IMG_MEAN, IMG_STD),
-])
-# transforms.Resize(test_img_size),
-# transforms.TenCrop(input_img_size),
-# transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    test_img_size = int(input_img_size * 1.1)  # 测试时，图片resize大小
+    transform_test = transforms.Compose([
+        transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
+        transforms.ToTensor(),
+        transforms.Normalize(IMG_MEAN, IMG_STD),
+    ])
+    # transforms.Resize(test_img_size),
+    # transforms.TenCrop(input_img_size),
+    # transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
 
-# criterion, target_type = nn.MSELoss(), 'fa'
-criterion, target_type = nn.CrossEntropyLoss(), 'ls'
-# 随机梯度下降
-optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=5e-4)
-# Adam 优化
-# optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=5e-4)
+    # criterion, target_type = nn.MSELoss(), 'fa'
+    criterion, target_type = nn.CrossEntropyLoss(), 'ls'
+    # 随机梯度下降
+    optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=5e-4)
+    # Adam 优化
+    # optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=5e-4)
 
-print("------------Preparing Data...----------------")
-if opt.dataset == "JAFFE":
-    train_data = JAFFE(is_train=True, transform=transform_train, target_type=target_type)
-    test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type)
-# elif opt.dataset == "CK+48":
-#     train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type, img_dir_pre_path="data/CK+48")
-#     test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type, img_dir_pre_path="data/CK+48")
-elif opt.dataset == "CK+":
-    train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type)
-    test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type)
-elif opt.dataset == "FER2013":
-    train_data = FER2013(is_train=True, private_test=True, transform=transform_train, target_type=target_type)
-    test_data = FER2013(is_train=False, private_test=True, transform=transform_test, target_type=target_type)
-else:
-    assert("opt.dataset should be in %s, but got %s" % (enabled_datasets, opt.dataset))
-train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.bs, shuffle=True)
-test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.bs, shuffle=False)
-print("------------%s Data Already be Prepared------------" % opt.dataset)
+    print("------------Preparing Data...----------------")
+    if opt.dataset == "JAFFE":
+        train_data = JAFFE(is_train=True, transform=transform_train, target_type=target_type)
+        test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type)
+    # elif opt.dataset == "CK+48":
+    #     train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type, img_dir_pre_path="data/CK+48")
+    #     test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type, img_dir_pre_path="data/CK+48")
+    elif opt.dataset == "CK+":
+        train_data = CKPlus(is_train=True, transform=transform_train, target_type=target_type)
+        test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type)
+    elif opt.dataset == "FER2013":
+        train_data = FER2013(is_train=True, private_test=True, transform=transform_train, target_type=target_type)
+        test_data = FER2013(is_train=False, private_test=True, transform=transform_test, target_type=target_type)
+    else:
+        assert("opt.dataset should be in %s, but got %s" % (enabled_datasets, opt.dataset))
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.bs, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=opt.bs, shuffle=False)
+    print("------------%s Data Already be Prepared------------" % opt.dataset)
 
 
 # Training
@@ -198,7 +207,9 @@ def train(epoch, jump_out_lr=-1.):
     total = 0
     cur_train_acc = 0.
     time_start = time.time()
-    for batch_idx, (inputs, targets, _, _) in enumerate(train_loader):
+    for batch_idx, (inputs, targets, _, landmarks_inputs) in enumerate(train_loader):
+        if opt.fl:
+            inputs = landmarks_inputs
         if use_cuda:
             inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
         optimizer.zero_grad()
@@ -256,12 +267,14 @@ def test(epoch):
     correct_map = [0, 0, 0, 0, 0, 0, 0]
     time_start = time.time()
     with torch.no_grad():
-        for batch_idx, (inputs, targets, _, _) in enumerate(test_loader):
+        for batch_idx, (inputs, targets, _, landmarks_inputs) in enumerate(test_loader):
+            if opt.fl:
+                inputs = landmarks_inputs
             bs, c, h, w = np.shape(inputs)
             # bs, ncrops, c, h, w = np.shape(inputs)
             inputs = inputs.view(-1, c, h, w)
             if use_cuda:
-                inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
+                inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
             inputs, targets = Variable(inputs), Variable(targets)
             outputs = net(inputs)
 
@@ -312,6 +325,8 @@ def test(epoch):
                  }
         if not os.path.isdir(net_to_save_dir):
             os.mkdir(net_to_save_dir)
+        if not os.path.isdir(os.path.join(net_to_save_dir, str(opt.save_number))):
+            os.mkdir(os.path.join(net_to_save_dir, str(opt.save_number)))
         if not os.path.isdir(net_to_save_path):
             os.mkdir(net_to_save_path)
         torch.save(state, os.path.join(net_to_save_path, saved_model_name))
@@ -322,7 +337,7 @@ def save_over_flag():
     with open(file_path, "w+", encoding="utf-8") as file:
         file.write(train_acc_map.__str__())
         file.write("\n")
-        file.write(train_acc_map.__str__())
+        file.write(test_acc_map.__str__())
         file.write("\n")
 
 

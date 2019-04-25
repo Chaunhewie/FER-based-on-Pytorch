@@ -6,7 +6,7 @@ import numpy as np
 import torch.utils.data as data
 import sys
 sys.path.append('..')
-from utils.face_recognition import crop_face_area_and_get_landmarks
+from utils.face_recognition import crop_face_area_and_get_landmarks, get_img_with_landmarks
 
 All_People_Indexes = ['S119', 'S130', 'S127', 'S073', 'S067', 'S107', 'S092', 'S160', 'S134', 'S106', 'S101', 'S155',
                       'S109', 'S053', 'S116', 'S139', 'S064', 'S117', 'S505', 'S099', 'S122', 'S082', 'S079', 'S121',
@@ -89,6 +89,9 @@ class CKPlus(data.Dataset):
                     if is_train:
                         img = Image.open(os.path.join(self.img_dir_pre_path, c, img_file_name))
                         img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                        if face_box is None or face_landmarks is None:
+                            self.train_data_num -= 1
+                            continue
                         self.train_data.append(img)
                         self.train_classes.append(self.classes_map[c])
                         self.train_box.append(face_box)
@@ -98,6 +101,9 @@ class CKPlus(data.Dataset):
                     if not is_train:
                         img = Image.open(os.path.join(self.img_dir_pre_path, c, img_file_name))
                         img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                        if face_box is None or face_landmarks is None:
+                            self.train_data_num -= 1
+                            continue
                         self.test_data.append(img)
                         self.test_classes.append(self.classes_map[c])
                         self.test_box.append(face_box)
@@ -124,11 +130,15 @@ class CKPlus(data.Dataset):
             img, cla, box, landmarks = self.test_data[index], self.test_classes[index], self.test_box[index], \
                                        self.test_landmarks[index]
 
+        # 使用landmarks来剪裁img
+        landmarks_img = get_img_with_landmarks(img, landmarks)
         # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
         if self.transform is not None:
             img = self.transform(img)
+        if self.transform is not None:
+            landmarks_img = self.transform(landmarks_img)
 
-        return img, cla, box, landmarks
+        return img, cla, box, landmarks_img
 
     def __len__(self):
         """

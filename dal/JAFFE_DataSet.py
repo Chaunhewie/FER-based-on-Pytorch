@@ -6,7 +6,7 @@ import numpy as np
 import torch.utils.data as data
 import sys
 sys.path.append('..')
-from utils.face_recognition import crop_face_area_and_get_landmarks
+from utils.face_recognition import crop_face_area_and_get_landmarks, get_img_with_landmarks
 
 All_People_Names = ['KM', 'KL', 'KR', 'YM', 'UY', 'NA', 'NM', 'MK', 'KA', 'TM']
 # random.shuffle(All_People_Names)
@@ -77,6 +77,9 @@ class JAFFE(data.Dataset):
                 for img_file_name in img_file_names:
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
                     img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    if face_box is None or face_landmarks is None:
+                        self.train_data_num -= 1
+                        continue
                     self.train_data.append(img)
                     self.train_classes.append(self.classes_map[img_file_name[3:5]])
                     self.train_box.append(face_box)
@@ -88,6 +91,9 @@ class JAFFE(data.Dataset):
                 for img_file_name in img_file_names:
                     img = Image.open(os.path.join(self.img_dir_pre_path, person_name, img_file_name))
                     img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    if face_box is None or face_landmarks is None:
+                        self.train_data_num -= 1
+                        continue
                     self.test_data.append(img)
                     self.test_classes.append(self.classes_map[img_file_name[3:5]])
                     self.test_box.append(face_box)
@@ -112,11 +118,15 @@ class JAFFE(data.Dataset):
             img, cla, box, landmarks = self.test_data[index], self.test_classes[index], self.test_box[index], \
                                        self.test_landmarks[index]
 
+        # 使用landmarks来剪裁img
+        landmarks_img = get_img_with_landmarks(img, landmarks)
         # 由于存在 random_crop 等的随机处理，应该是读取的时候进行，这样每个epoch都能够获取不同的random处理
         if self.transform is not None:
             img = self.transform(img)
+        if self.transform is not None:
+            landmarks_img = self.transform(landmarks_img)
 
-        return img, cla, box, landmarks
+        return img, cla, box, landmarks_img
 
     def __len__(self):
         """
