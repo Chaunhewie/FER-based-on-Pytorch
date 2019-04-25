@@ -9,6 +9,7 @@ from torch.autograd import Variable
 import torch.nn as nn
 import numpy as np
 import argparse
+import time
 
 from networks.ACNN import ACNN
 from networks.ACCNN import ACCNN
@@ -196,6 +197,7 @@ def train(epoch, jump_out_lr=-1.):
     correct = 0
     total = 0
     cur_train_acc = 0.
+    time_start = time.time()
     for batch_idx, (inputs, targets, _, _) in enumerate(train_loader):
         if use_cuda:
             inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
@@ -206,7 +208,7 @@ def train(epoch, jump_out_lr=-1.):
         # print("targets:", targets)
         loss = criterion(outputs, targets)
         loss.backward()
-        utils.clip_gradient(optimizer, current_lr)  # 解决梯度爆炸 https://blog.csdn.net/u010814042/article/details/76154391
+        utils.clip_gradient(optimizer, 5*current_lr)  # 解决梯度爆炸 https://blog.csdn.net/u010814042/article/details/76154391
         optimizer.step()
 
         train_loss += float(loss.data)
@@ -227,15 +229,16 @@ def train(epoch, jump_out_lr=-1.):
         # print("equal: ", predicted.eq(ground_value.data).cpu())
         cur_train_acc = float(correct) / float(total) * 100.
 
-        utils.progress_bar(batch_idx, len(train_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)' %
-                           (train_loss / (batch_idx + 1), cur_train_acc, correct, total))
+        time_end = time.time()
+        duration = time_end - time_start
+        utils.progress_bar(batch_idx, len(train_loader), 'Time: %.2fs | Loss: %.3f | Acc: %.3f%% (%d/%d)' %
+                           (duration, train_loss / (batch_idx + 1), cur_train_acc, correct, total))
 
         # 删除无用的变量，释放显存
         del loss
         del inputs
         del outputs
         del predicted
-
     Train_acc = cur_train_acc
     if train_acc_map['best_acc'] < Train_acc:
         train_acc_map['best_acc'] = Train_acc
@@ -251,6 +254,7 @@ def test(epoch):
     total = 0
     cur_test_acc = 0.
     correct_map = [0, 0, 0, 0, 0, 0, 0]
+    time_start = time.time()
     with torch.no_grad():
         for batch_idx, (inputs, targets, _, _) in enumerate(test_loader):
             bs, c, h, w = np.shape(inputs)
@@ -283,8 +287,10 @@ def test(epoch):
             correct += predicted.eq(ground_value.data).cpu().sum()
             cur_test_acc = float(correct) / float(total) * 100.
 
-            utils.progress_bar(batch_idx, len(test_loader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (private_test_loss / (batch_idx + 1), cur_test_acc, correct, total))
+            time_end = time.time()
+            duration = time_end - time_start
+            utils.progress_bar(batch_idx, len(test_loader), 'Time: %.2fs | Loss: %.3f | Acc: %.3f%% (%d/%d)' %
+                               (duration, private_test_loss / (batch_idx + 1), cur_test_acc, correct, total))
 
             # 删除无用的变量，释放显存
             del loss
