@@ -55,7 +55,7 @@ parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
 # 是否使用面部标记点进行训练
 parser.add_argument('--fl', default=False, type=bool, help='whether to use face landmarks to train')
 # 存储的模型序号
-parser.add_argument('--save_number', default=4, type=int, help='save_number')
+parser.add_argument('--save_number', default=5, type=int, help='save_number')
 # 批次大小
 parser.add_argument('--bs', default=32, type=int, help='batch_size')
 # 学习率
