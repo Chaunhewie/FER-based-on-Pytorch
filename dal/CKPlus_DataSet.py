@@ -1,4 +1,4 @@
-# coding=utf-8
+﻿# coding=utf-8
 import os
 import random
 from PIL import Image
@@ -63,6 +63,7 @@ class CKPlus(data.Dataset):
         self.transform = transform
         self.is_train = is_train  # train set or test set
         self.using_fl = using_fl
+        self.name = 'CK+'
 
         split_index = int(len(All_People_Indexes)*k_folder/10)
         if split_index < 1:
@@ -143,6 +144,9 @@ class CKPlus(data.Dataset):
             return self.train_data_num
         else:
             return self.test_data_num
+        
+    def set_transform(self, transform):
+        self.transform = transform
 
 
 if __name__ == "__main__":

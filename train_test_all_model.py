@@ -21,10 +21,11 @@ if __name__ == "__main__":
             #     continue
             bs = train_batch_size[net]
             epoch = train_epoch[net]
+            lre_je = int(epoch*0.1)
             lrd_se = int(epoch*0.8)
             lrd_s = int((epoch-lrd_se)/10)
-            command = "python train_test.py --dataset %s --model %s --bs %s --epoch %d --lrd_se %d --lrd_s %d" \
-                      % (dataset, net, bs, epoch, lrd_se, lrd_s)
+            command = "python train_test.py --dataset %s --model %s --bs %s --epoch %d --lre_je %d --lrd_se %d --lrd_s %d" \
+                      % (dataset, net, bs, epoch, lre_je, lrd_se, lrd_s)
             print(command)
             os.system(command)
 

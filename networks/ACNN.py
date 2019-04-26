@@ -1,4 +1,5 @@
 # coding=utf-8
+import math
 import torch.nn as nn
 
 '''
@@ -39,6 +40,8 @@ class ACNN(nn.Module):
         )
         self.virtualize = virtualize
         self.features_out = []
+        print('Initializing ACNN weights...')
+        self._initialize_weights()
 
     def forward(self, x):
         # print(x.size())
@@ -58,6 +61,17 @@ class ACNN(nn.Module):
         for s in size:
             num_features *= s
         return num_features
+
+    def _initialize_weights(self):
+        for layer in self.named_modules():
+            if isinstance(layer[1], nn.Conv2d):
+                n = layer[1].kernel_size[0] * layer[1].kernel_size[1] * layer[1].out_channels
+                layer[1].weight.data.normal_(0, math.sqrt(2. / n))
+                if layer[1].bias is not None:
+                    layer[1].bias.data.zero_()
+            elif isinstance(layer[1], nn.Linear):
+                layer[1].weight.data.normal_(0, 0.01)
+                layer[1].bias.data.zero_()
 
 
 if __name__ == "__main__":

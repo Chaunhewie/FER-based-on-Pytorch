@@ -1,5 +1,6 @@
 # coding=utf-8
 import os
+import math
 import torch
 import torch.nn as nn
 '''
@@ -17,25 +18,48 @@ class ACCNN(nn.Module):
         super(ACCNN, self).__init__()
         self.input_size = 223
         # x size [BATCHSIZE, 1, 48, 48]
+        # self.features = nn.Sequential(
+        #     nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=2),   # 32, 110, 110
+        #     nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
+        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 53, 53
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 24, 24
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(kernel_size=2),      # 32, 12, 12
+        #     nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3),  # 16, 10, 10
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, padding=1),  # 16, 10, 10
+        #     nn.ReLU(inplace=True),
+        #     nn.AvgPool2d(kernel_size=2),      # 16, 5, 5
+        # )
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5),
+        #     nn.Linear(16 * 5 * 5, 20),
+        #     nn.Dropout(p=0.5),
+        #     nn.Linear(20, n_classes),
+        #     nn.Softmax(1),
+        # )
         self.features = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=2),   # 32, 110, 110
+            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=2),  # 64, 110, 110
             nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
-            nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 53, 53
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 53, 53
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 24, 24
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 24, 24
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2),      # 32, 12, 12
-            nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3),  # 16, 10, 10
+            nn.MaxPool2d(kernel_size=2),  # 64, 12, 12
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3),  # 64, 10, 10
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, padding=1),  # 16, 10, 10
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),  # 64, 10, 10
             nn.ReLU(inplace=True),
-            nn.AvgPool2d(kernel_size=2),      # 16, 5, 5
+            nn.AvgPool2d(kernel_size=2),  # 64, 5, 5
         )
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5),
-            nn.Linear(16 * 5 * 5, 20),
-            nn.Dropout(p=0.5),
-            nn.Linear(20, n_classes),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.6),
+            nn.Linear(64 * 5 * 5, 100),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.6),
+            nn.Linear(100, n_classes),
             nn.Softmax(1),
         )
         self.virtualize = virtualize
@@ -62,6 +86,9 @@ class ACCNN(nn.Module):
             print("Loading parameters over!")
             self.best_acc = checkpoint['best_test_acc']
             self.best_acc_epoch = checkpoint['best_test_acc_epoch']
+        else:
+            print('Initializing ACCNN weights...')
+            self._initialize_weights()
         print('Init ACCNN model over!')
 
     def forward(self, x):
@@ -86,12 +113,23 @@ class ACCNN(nn.Module):
     def clean_features_out(self):
         self.features_out = []
 
+    def _initialize_weights(self):
+        for layer in self.named_modules():
+            if isinstance(layer[1], nn.Conv2d):
+                n = layer[1].kernel_size[0] * layer[1].kernel_size[1] * layer[1].out_channels
+                layer[1].weight.data.normal_(0, math.sqrt(2. / n))
+                if layer[1].bias is not None:
+                    layer[1].bias.data.zero_()
+            elif isinstance(layer[1], nn.Linear):
+                layer[1].weight.data.normal_(0, 0.01)
+                layer[1].bias.data.zero_()
+
 
 if __name__ == "__main__":
     import sys
     sys.path.append("..")
     from utils.utils import num_of_parameters_of_net
     n_classes = 7
-    net = ACCNN(n_classes=n_classes, root_pre_path='..', pre_trained=True)
+    net = ACCNN(n_classes=n_classes, root_pre_path='..', pre_trained=False)
     print(net)
     print("num_of_parameters_of_net: ", num_of_parameters_of_net(net))

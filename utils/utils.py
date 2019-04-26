@@ -69,3 +69,9 @@ def num_of_parameters_of_net(net):
         num_of_parameters += num
     return num_of_parameters
 
+
+def save_internal_img(path, img, img_name):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    img.save(os.path.join(path, img_name))
+

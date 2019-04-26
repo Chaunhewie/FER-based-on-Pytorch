@@ -21,7 +21,7 @@ from dal.CKPlus_DataSet import CKPlus
 from dal.FER2013_DataSet import FER2013
 import transforms.transforms as transforms
 import utils.utils as utils
-
+import torchvision.transforms
 use_cuda = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if use_cuda else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
 print('cuda available: ', use_cuda)
@@ -64,7 +64,9 @@ parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 parser.add_argument('--epoch', default=200, type=int, help='training epoch num')
 # 每次获得到更优的准确率后，会进行一次存储，此选项选择是否从上次存储位置继续
 parser.add_argument('--resume', default=True, type=bool, help='resume training from last checkpoint')
-# 表示默认从第 $lrd_se 次epoch开始进行lr的递减，应该小于 $jump_out_epoch
+# 表示默认一开始的前 $lre_je 次epoch，增大lr来进行跳跃，解决一开始收敛缓慢问题
+parser.add_argument('--lre_je', default=20, type=int, help='learning rate expand jump epoch')
+# 表示默认从第 $lrd_se 次epoch开始进行lr的递减
 parser.add_argument('--lrd_se', default=180, type=int, help='learning rate decay start epoch')
 # 表示默认每经过2次epoch进行一次递减
 parser.add_argument('--lrd_s', default=2, type=int, help='learning rate decay step')
@@ -201,6 +203,8 @@ def train(epoch, jump_out_lr=-1.):
         utils.set_lr(optimizer, current_lr)  # set the learning rate
     else:
         current_lr = opt.lr
+    if epoch < opt.lre_je:
+        current_lr *= 5  # 解决一开始收敛慢的问题
     print('learning_rate: %s' % str(current_lr))
     global Train_acc
     net.train()

@@ -53,6 +53,7 @@ class JAFFE(data.Dataset):
         self.transform = transform
         self.is_train = is_train  # train set or test set
         self.using_fl = using_fl
+        self.name = 'JAFFE'
 
         split_index = int(len(All_People_Names)*k_folder/10)
         if split_index < 1:
@@ -133,6 +134,9 @@ class JAFFE(data.Dataset):
         else:
             return self.test_data_num
 
+    def set_transform(self, transform):
+        self.transform = transform
+        
 
 if __name__ == "__main__":
     j1 = JAFFE(is_train=True, img_dir_pre_path="../data/jaffe")

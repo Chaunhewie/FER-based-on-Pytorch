@@ -72,7 +72,7 @@ def test_draw_features_and_weights_of_net():
     from networks.ACNN import ACNN
     from networks.ACCNN import ACCNN
     from networks.AlexNet import AlexNet
-    from dal.CKPlus_DataSet import CKPlus48
+    from dal.CKPlus_DataSet import CKPlus
     from dal.FER2013_DataSet import FER2013
     from dal.JAFFE_DataSet import JAFFE
 
@@ -112,10 +112,10 @@ def test_draw_features_and_weights_of_net():
         test_data = JAFFE(is_train=False, transform=transform_test, target_type=target_type,
                           img_dir_pre_path="../data/jaffe")
     elif dataset == "CK+48":
-        test_data = CKPlus48(is_train=False, transform=transform_test, target_type=target_type,
+        test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type,
                              img_dir_pre_path="../data/CK+48")
     elif dataset == "CK+":
-        test_data = CKPlus48(is_train=False, transform=transform_test, target_type=target_type,
+        test_data = CKPlus(is_train=False, transform=transform_test, target_type=target_type,
                              img_dir_pre_path="../data/CK+")
     elif dataset == "FER2013":
         test_data = FER2013(is_train=False, private_test=True, transform=transform_test, target_type=target_type,

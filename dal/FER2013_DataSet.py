@@ -9,7 +9,6 @@ import sys
 sys.path.append('..')
 from utils.face_recognition import crop_face_area_and_get_landmarks, get_img_with_landmarks
 
-
 class FER2013(data.Dataset):
     """`FER2013 Dataset.
     Args:
@@ -55,6 +54,7 @@ class FER2013(data.Dataset):
         self.is_train = is_train  # train set or test set
         self.private_test = private_test
         self.using_fl = using_fl
+        self.name = 'FER2013'
 
         np_img_data = np.array(pd.read_csv(self.img_data_file_path))
         self.train_data = []
@@ -63,6 +63,8 @@ class FER2013(data.Dataset):
         self.test_data = []
         self.test_data_num = 0
         self.test_classes = []
+        # self.cropped_img_path = img_dir_pre_path+"_cropped"
+        # self.landmarks_img_path = img_dir_pre_path + "_fl"
         for line in np_img_data:
             if line[2] == 'Training':
                 self.train_data_num += 1
@@ -139,6 +141,9 @@ class FER2013(data.Dataset):
         else:
             return self.test_data_num
 
+    def set_transform(self, transform):
+        self.transform = transform
+        
 
 if __name__ == "__main__":
     f1 = FER2013(is_train=True, img_dir_pre_path="../data/fer2013")
