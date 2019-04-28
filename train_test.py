@@ -139,8 +139,8 @@ print("------------%s Model Already be Prepared------------" % opt.model)
 
 if not over_flag:
     # for gray images
-    IMG_MEAN = [0.5]
-    IMG_STD = [0.225]
+    IMG_MEAN = [0.449]
+    IMG_STD = [0.226]
     # for RGB images
     # IMG_MEAN = [0.485, 0.456, 0.406]
     # IMG_STD = [0.229, 0.224, 0.225]
@@ -166,10 +166,12 @@ if not over_flag:
 
     # criterion, target_type = nn.MSELoss(), 'fa'
     criterion, target_type = nn.CrossEntropyLoss(), 'ls'
-    # 随机梯度下降
+    # 随机梯度下降 优化
     optimizer = torch.optim.SGD(net.parameters(), lr=opt.lr, momentum=0.9, weight_decay=5e-4)
     # Adam 优化
     # optimizer = torch.optim.Adam(net.parameters(), lr=opt.lr, weight_decay=5e-4)
+    # Adadelta 优化
+    # optimizer = torch.optim.Adadelta(net.parameters(), lr=opt.lr, weight_decay=5e-4)
 
     print("------------Preparing Data...----------------")
     if opt.dataset == "JAFFE":
