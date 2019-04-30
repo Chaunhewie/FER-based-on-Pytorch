@@ -39,7 +39,7 @@ def crop_face_area_and_get_landmarks(img, image_size=400):
                 top = plot[1]
             if plot[1] > bottom:
                 bottom = plot[1]
-    face_box = (left, top, right, bottom)
+    face_box = (top, right, bottom, left)
     top_exp = int((bottom-top)*0.1)
     bottom_exp = int((bottom-top)*0.05)
     left_exp, right_exp = int((right-left)*0.1), int((right-left)*0.1)

@@ -13,7 +13,18 @@ import torch.nn as nn
 '''
 
 class ACCNN(nn.Module):
-    def __init__(self, n_classes, pre_trained=False, root_pre_path='', data_set='FER2013', fold=2, virtualize=False):
+    '''ACCNN 自己创建的神经网络，用于识别面部表情
+
+        n_class 表示输出的分类数
+        pre_trained 表示是否加载训练好的网络
+        root_pre_path 表示执行目录相对于项目目录的路径（用于debug）
+        dataset 表示预加载使用的模型参数训练自哪个数据集
+        fold 表示存储的文件序号
+        virtualize 表示是否进行可视化
+        using_fl 表示是否为根据face landmarks进行识别
+    '''
+    def __init__(self, n_classes=7, pre_trained=False, root_pre_path='', dataset='FER2013', fold=5, virtualize=False,
+                 using_fl=False):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACCNN, self).__init__()
         self.input_size = 223
@@ -62,30 +73,39 @@ class ACCNN(nn.Module):
             nn.Linear(100, n_classes),
             nn.Softmax(1),
         )
+        self.dataset = dataset
+        self.fold = fold
         self.virtualize = virtualize
+        self.using_fl = using_fl
         self.features_out = []
         self.best_acc = 0.
         self.best_acc_epoch = -1
-        if data_set == "CK+" or data_set == "CK+48":
+        if dataset == "CK+" or dataset == "CK+48":
             self.output_map = {0:'生气', 1:'蔑视', 2:'恶心', 3:'害怕', 4:'开心', 5:'悲伤', 6:'惊讶'}
-        elif data_set == 'FER2013':
+        elif dataset == 'FER2013':
             self.output_map = {0:'生气', 1:'恶心', 2:'害怕', 3:'开心', 4:'悲伤', 5:'惊讶', 6:'中性'}
-        elif data_set == 'JAFFE':
+        elif dataset == 'JAFFE':
             self.output_map = {0:'中性', 1:'开心', 2:'悲伤', 3:'惊讶', 4:'生气', 5:'恶心', 6:'害怕'}
         else:
             assert 'dataset error: should be in ["JAFFE", "CK+48", "CK+", "FER2013"]'
             self.output_map = {}
         if pre_trained:
             save_model_dir_name = 'Saved_Models'
-            saved_model_name = 'Best_model.t7'
-            net_to_save_path = os.path.join(root_pre_path, save_model_dir_name, data_set+"_ACCNN_"+str(fold))
-            print("Loading parameters from ", net_to_save_path)
-            assert os.path.isdir(net_to_save_path), 'Error: no checkpoint directory found!'
-            checkpoint = torch.load(os.path.join(net_to_save_path, saved_model_name))
+            if self.using_fl:
+                saved_model_name = "Best_model_fl.t7"
+            else:
+                saved_model_name = 'Best_model.t7'
+            net_saved_path = os.path.join(root_pre_path, save_model_dir_name, str(fold), dataset + '_ACCNN_' + str(fold))
+            assert os.path.isdir(net_saved_path), 'Error: no checkpoint directory found!'
+            parameters_file_path = os.path.join(net_saved_path, saved_model_name)
+            print("Loading parameters from ", parameters_file_path)
+            checkpoint = torch.load(parameters_file_path)
             self.load_state_dict(checkpoint['net'])
-            print("Loading parameters over!")
             self.best_acc = checkpoint['best_test_acc']
             self.best_acc_epoch = checkpoint['best_test_acc_epoch']
+            print("Loading parameters over!")
+            print("Parameters are trained from %s(epoch %d) with test_acc: %3.f"
+                  % (dataset, self.best_acc_epoch, self.best_acc))
         else:
             print('Initializing ACCNN weights...')
             self._initialize_weights()

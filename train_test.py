@@ -21,7 +21,6 @@ from dal.CKPlus_DataSet import CKPlus
 from dal.FER2013_DataSet import FER2013
 import transforms.transforms as transforms
 import utils.utils as utils
-import torchvision.transforms
 use_cuda = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if use_cuda else "cpu")  # 让torch判断是否使用GPU，建议使用GPU环境，因为会快很多
 print('cuda available: ', use_cuda)
@@ -85,12 +84,12 @@ net_to_save_dir = "Saved_Models"
 net_to_save_path = os.path.join(net_to_save_dir, str(opt.save_number), opt.dataset+'_'+opt.model+'_'+str(opt.save_number))
 if opt.fl:
     saved_model_name = "Best_model_fl.t7"
+    model_over_flag_name = "__%d_success_fl__" % (opt.epoch)
+    history_file_name = "history_fl.txt"
 else:
     saved_model_name = "Best_model.t7"
-if opt.fl:
-    model_over_flag_name = "__%d_success_fl__" % (opt.epoch)
-else:
     model_over_flag_name = "__%d_success__" % (opt.epoch)
+    history_file_name = "history.txt"
 over_flag = False  # 如果已经成功训练完，就可以结束了
 if opt.model.lower() == "ACNN".lower():
     net = ACNN(n_classes=n_classes).to(DEVICE)
@@ -260,6 +259,7 @@ def train(epoch, jump_out_lr=-1.):
     if train_acc_map['best_acc'] < Train_acc:
         train_acc_map['best_acc'] = Train_acc
         train_acc_map['best_acc_epoch'] = epoch
+    write_history('Train', cur_train_acc, train_loss / (batch_idx + 1), None)
 
 
 # Testing
@@ -327,15 +327,26 @@ def test(epoch):
                  'best_test_acc_epoch': test_acc_map['best_acc_epoch'],
                  'correct_map': correct_map,
                  }
-        if not os.path.isdir(net_to_save_dir):
-            os.mkdir(net_to_save_dir)
-        if not os.path.isdir(os.path.join(net_to_save_dir, str(opt.save_number))):
-            os.mkdir(os.path.join(net_to_save_dir, str(opt.save_number)))
-        if not os.path.isdir(net_to_save_path):
-            os.mkdir(net_to_save_path)
         torch.save(state, os.path.join(net_to_save_path, saved_model_name))
+    write_history('Test', cur_test_acc, private_test_loss / (batch_idx + 1), correct_map)
 
-
+        
+def write_history(train_or_test, acc, loss, predictions):
+    if not os.path.isdir(net_to_save_dir):
+        os.mkdir(net_to_save_dir)
+    if not os.path.isdir(os.path.join(net_to_save_dir, str(opt.save_number))):
+        os.mkdir(os.path.join(net_to_save_dir, str(opt.save_number)))
+    if not os.path.isdir(net_to_save_path):
+        os.mkdir(net_to_save_path)
+    with open(os.path.join(net_to_save_path, history_file_name), "a+", encoding="utf-8") as history_file:
+        msg = train_or_test + " %.3f %.3f " % (acc, loss)
+        if predictions:
+            msg += str(predictions)
+        msg += "\n"
+        history_file.write(msg)
+        history_file.flush()
+    
+    
 def save_over_flag():
     file_path = os.path.join(net_to_save_path, model_over_flag_name)
     with open(file_path, "w+", encoding="utf-8") as file:
@@ -343,6 +354,7 @@ def save_over_flag():
         file.write("\n")
         file.write(test_acc_map.__str__())
         file.write("\n")
+        file.flush()
 
 
 if __name__ == "__main__":
