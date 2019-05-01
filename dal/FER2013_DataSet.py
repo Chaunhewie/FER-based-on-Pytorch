@@ -83,30 +83,32 @@ class FER2013(data.Dataset):
             elif private_test and line[2] == 'PrivateTest':
                 self.test_data_num += 1
                 if not is_train:
-                    img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    img_original = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
+                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img_original)
                     if face_box is None or face_landmarks is None:
-                        self.test_data_num -= 1
-                        continue
-                    if using_fl:
-                        landmarks_img = get_img_with_landmarks(img, face_landmarks)
-                        self.test_data.append(landmarks_img)
+                        # self.test_data_num -= 1
+                        self.test_data.append(img_original)
                     else:
-                        self.test_data.append(img)
+                        if using_fl:
+                            landmarks_img = get_img_with_landmarks(img, face_landmarks)
+                            self.test_data.append(landmarks_img)
+                        else:
+                            self.test_data.append(img)
                     self.test_classes.append(self.classes_map[line[0]])
             elif not private_test and line[2] == 'PublicTest':
                 self.test_data_num += 1
                 if not is_train:
-                    img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    img_original = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
+                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img_original)
                     if face_box is None or face_landmarks is None:
-                        self.train_data_num -= 1
-                        continue
-                    if using_fl:
-                        landmarks_img = get_img_with_landmarks(img, face_landmarks)
-                        self.test_data.append(landmarks_img)
+                        # self.train_data_num -= 1
+                        self.test_data.append(img_original)
                     else:
-                        self.test_data.append(img)
+                        if using_fl:
+                            landmarks_img = get_img_with_landmarks(img, face_landmarks)
+                            self.test_data.append(landmarks_img)
+                        else:
+                            self.test_data.append(img)
                     self.test_classes.append(self.classes_map[line[0]])
         print("train_num: ", self.train_data_num, " test_num:", self.test_data_num)
 

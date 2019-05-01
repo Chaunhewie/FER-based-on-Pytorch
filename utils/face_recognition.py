@@ -22,7 +22,8 @@ def crop_face_area_and_get_landmarks(img, image_size=400):
     face_locations = face_recognition.face_locations(np.array(img))  # fer2013存在无法识别的图片
     if len(face_locations) <= 0:
         return img, None, None
-    top, right, bottom, left = face_locations[0]
+    face_box = face_locations[0]
+    top, right, bottom, left = face_box
     # 脸部关键点标记获取
     face_landmarks = face_recognition.face_landmarks(np.array(img))
     if len(face_landmarks) <= 0:
@@ -32,14 +33,13 @@ def crop_face_area_and_get_landmarks(img, image_size=400):
     for name, plot_list in face_landmarks.items():
         for plot in plot_list:
             if plot[0] < left:
-                left = plot[0]
+                left = plot[0] if plot[0] > 0 else 0
             if plot[0] > right:
-                right = plot[0]
+                right = plot[0] if plot[0] > 0 else 0
             if plot[1] < top:
-                top = plot[1]
+                top = plot[1] if plot[1] > 0 else 0
             if plot[1] > bottom:
-                bottom = plot[1]
-    face_box = (top, right, bottom, left)
+                bottom = plot[1] if plot[1] > 0 else 0
     top_exp = int((bottom-top)*0.1)
     bottom_exp = int((bottom-top)*0.05)
     left_exp, right_exp = int((right-left)*0.1), int((right-left)*0.1)

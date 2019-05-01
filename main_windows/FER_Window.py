@@ -2,71 +2,78 @@
 import sys
 import time
 import numpy as np
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtMultimedia import *
-from PyQt5.QtMultimediaWidgets import *
+from PyQt5.QtGui import QPixmap, QPainter, QPen
+from PyQt5.QtWidgets import QMainWindow, QPushButton, QLabel, QFileDialog, QApplication, QVBoxLayout, QHBoxLayout
+from PyQt5.QtCore import Qt, QRect, QSize
 
 from main_windows.model_controller import ModelController
+from main_windows.css import *
 
 QPixmap_Channels_Count = 4
+
 
 class FERWindow(QMainWindow):
 
     def __init__(self, root_pre_path='main_windows', *args, **kwargs):
         super(FERWindow, self).__init__(*args, **kwargs)
+        model_root_pre_path = ""
+        css_root_pre_path = root_pre_path + "/"
+        if len(root_pre_path) <= 0:
+            model_root_pre_path = ".."
+            css_root_pre_path = ""
 
         # 窗口大小
-        self.resize(800, 800)
+        self.resize(1000, 1200)
 
         # 打开图片的btn
         self.get_pic_btn = QPushButton(self)
         self.get_pic_btn.setText("打开图片")
-        self.get_pic_btn.move(20, 30)
+        self.get_pic_btn.setFixedSize(QSize(150, 50))
+        self.get_pic_btn.move(20, 20)
         self.get_pic_btn.clicked.connect(self.open_image)
+        self.get_pic_btn.setStyleSheet(BUTTON_CSS % (css_root_pre_path, css_root_pre_path))
         # 展示原图片的label
         self.show_pic_label = QLabel(self)
         self.show_pic_label.setText("显示图片")
-        self.show_pic_label.setFixedSize(350, 350)
+        self.show_pic_label.setFixedSize(450, 450)
         self.show_pic_label.move(20, 90)
-        self.show_pic_label.setStyleSheet("QLabel{background:white;}QLabel{color:rgb(300,300,300,120);"
-                                          "font-size:30px;font-weight:bold;font-family:宋体;}")
+        self.show_pic_label.setStyleSheet(SHOW_PIC_LABEL_CSS)
         # 展示人脸定位的label
         self.show_res_label = QLabel(self)
         self.show_res_label.setText("显示图片")
-        self.show_res_label.setFixedSize(350, 350)
-        self.show_res_label.move(430, 90)
-        self.show_res_label.setStyleSheet("QLabel{background:white;}QLabel{color:rgb(300,300,300,120);"
-                                          "font-size:30px;font-weight:bold;font-family:宋体;}")
+        self.show_res_label.setFixedSize(450, 450)
+        self.show_res_label.move(520, 90)
+        self.show_res_label.setStyleSheet(SHOW_PIC_LABEL_CSS)
         # 展示表情的label
         self.show_emotion_label = QLabel(self)
         self.show_emotion_label.setText("")
         self.show_emotion_label.setFixedSize(350, 20)
-        self.show_emotion_label.move(430, 50)
-        self.show_emotion_label.setStyleSheet("QLabel{color:rgb(300,300,300,120);font-size:20px;"
-                                          "font-weight:bold;font-family:宋体;}")
+        self.show_emotion_label.move(520, 50)
+        self.show_emotion_label.setStyleSheet(SHOW_INFO_LABEL_CSS)
         # 展示时间的label
         self.show_delay_label = QLabel(self)
         self.show_delay_label.setText("")
         self.show_delay_label.setFixedSize(350, 20)
-        self.show_delay_label.move(430, 70)
-        self.show_delay_label.setStyleSheet("QLabel{color:rgb(300,300,300,120);font-size:20px;"
-                                          "font-weight:bold;font-family:宋体;}")
+        self.show_delay_label.move(520, 70)
+        self.show_delay_label.setStyleSheet(SHOW_INFO_LABEL_CSS)
         # 展示debug信息的label
         self.show_debug_label = QLabel(self)
         self.show_debug_label.setText("")
-        self.show_debug_label.setFixedSize(780, 10)
-        self.show_debug_label.move(20, 440)
-        self.show_debug_label.setStyleSheet("QLabel{color:rgb(300,300,300,120);font-size:10px;"
-                                          "font-weight:bold;font-family:宋体;}")
+        self.show_debug_label.setFixedSize(960, 10)
+        self.show_debug_label.move(20, 540)
+        self.show_debug_label.setStyleSheet(SHOW_DEBUG_LABEL_CSS)
+
+        # 展示模型可视化结果
+        self.virtualize_box = QVBoxLayout(self)
+        img_virt_box = QHBoxLayout(self)
+        # virt_num =
+        img_fl_virt_box = QHBoxLayout(self)
+        self.virtualize_box.addItem(img_virt_box)
+        self.virtualize_box.addItem(img_fl_virt_box)
 
         self.setWindowTitle("My FER Program")
         self.show()
 
-        model_root_pre_path = ""
-        if len(root_pre_path) <= 0:
-            model_root_pre_path = ".."
         self.model_controller = ModelController(model_root_pre_path=model_root_pre_path)
 
 

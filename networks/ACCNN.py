@@ -10,6 +10,8 @@ import torch.nn as nn
 填充 padding = P
 输出图片的大小为 N*N  N = (W-F+2P)/S + 1
                     W = (N-1)*S-2P+F
+                    
+论文：120*120 crop->96*96 as inputs
 '''
 
 class ACCNN(nn.Module):
@@ -28,26 +30,24 @@ class ACCNN(nn.Module):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACCNN, self).__init__()
         self.input_size = 223
-        # x size [BATCHSIZE, 1, 48, 48]
+        # x size [BATCHSIZE, 1, 120, 120]
         # self.features = nn.Sequential(
-        #     nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=2),   # 32, 110, 110
+        #     nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5),   # 64, 92, 92
         #     nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
-        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 53, 53
+        #     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5),   # 64, 88, 88
         #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=2),   # 32, 24, 24
+        #     nn.MaxPool2d(kernel_size=2),      # 64, 44, 44
+        #     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5),  # 64, 40, 40
         #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=2),      # 32, 12, 12
-        #     nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3),  # 16, 10, 10
+        #     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5),  # 64, 36, 36
         #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(in_channels=16, out_channels=16, kernel_size=3, padding=1),  # 16, 10, 10
-        #     nn.ReLU(inplace=True),
-        #     nn.AvgPool2d(kernel_size=2),      # 16, 5, 5
+        #     nn.MaxPool2d(kernel_size=1),      # 64, 18, 18   36, 36
         # )
         # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5),
-        #     nn.Linear(16 * 5 * 5, 20),
-        #     nn.Dropout(p=0.5),
-        #     nn.Linear(20, n_classes),
+        #     nn.Linear(64 * 36 * 36, 64),
+        #     nn.Dropout(p=0.6),
+        #     nn.Linear(64, n_classes),
+        #     nn.Dropout(p=0.6),
         #     nn.Softmax(1),
         # )
         self.features = nn.Sequential(
