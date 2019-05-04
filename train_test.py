@@ -84,13 +84,17 @@ net_to_save_dir = "Saved_Models"
 net_to_save_path = os.path.join(net_to_save_dir, str(opt.save_number), opt.dataset+'_'+opt.model+'_'+str(opt.save_number))
 if opt.fl:
     saved_model_name = "Best_model_fl.t7"
+    saved_temp_model_name = "Best_model_fl_temp.t7"
     model_over_flag_name = "__%d_success_fl__" % (opt.epoch)
     history_file_name = "history_fl.txt"
 else:
     saved_model_name = "Best_model.t7"
+    saved_temp_model_name = "Best_model_temp.t7"
     model_over_flag_name = "__%d_success__" % (opt.epoch)
     history_file_name = "history.txt"
 over_flag = False  # 如果已经成功训练完，就可以结束了
+TEMP_EPOCH = 2  # 用于暂时存储，每TEMP_EPOCH次存一次
+temp_internal = TEMP_EPOCH
 if opt.model.lower() == "ACNN".lower():
     net = ACNN(n_classes=n_classes).to(DEVICE)
 elif opt.model.lower() == "ACCNN".lower():
@@ -122,16 +126,16 @@ start_epoch = 0
 if opt.resume:
     # Load checkpoint.
     print('==> Loading Model Parameters...')
-    if os.path.exists(os.path.join(net_to_save_path, saved_model_name)):
+    if os.path.exists(os.path.join(net_to_save_path, saved_temp_model_name)):
         if os.path.exists(os.path.join(net_to_save_path, model_over_flag_name)):
             print("Model trained over flag checked!")
             over_flag = True
         assert os.path.isdir(net_to_save_path), 'Error: no checkpoint directory found!'
-        checkpoint = torch.load(os.path.join(net_to_save_path, saved_model_name))
+        checkpoint = torch.load(os.path.join(net_to_save_path, saved_temp_model_name))
         net.load_state_dict(checkpoint['net'])
         test_acc_map['best_acc'] = checkpoint['best_test_acc']
         test_acc_map['best_acc_epoch'] = checkpoint['best_test_acc_epoch']
-        start_epoch = test_acc_map['best_acc_epoch'] + 1
+        start_epoch = checkpoint['cur_epoch'] + 1
     else:
         print("Checkout File not Found, No initialization.")
 print("------------%s Model Already be Prepared------------" % opt.model)
@@ -197,8 +201,8 @@ if not over_flag:
 # Training
 def train(epoch, jump_out_lr=-1.):
     # 根据训练的epoch次数来降低learning rate
-    if epoch > opt.lrd_se > 0:
-        frac = (epoch - opt.lrd_se) // opt.lrd_s
+    if epoch >= opt.lrd_se > 0:
+        frac = ((epoch - opt.lrd_se) // opt.lrd_s) + 1
         decay_factor = opt.lrd_r ** frac
         current_lr = opt.lr * decay_factor  # current_lr = opt.lr * 降低率 ^ ((epoch - 开始decay的epoch) // 每次decay的epoch num)
         utils.set_lr(optimizer, current_lr)  # set the learning rate
@@ -325,6 +329,7 @@ def test(epoch):
         state = {'net': net.state_dict() if use_cuda else net,
                  'best_test_acc': test_acc_map['best_acc'],
                  'best_test_acc_epoch': test_acc_map['best_acc_epoch'],
+                 'cur_epoch': epoch,
                  'correct_map': correct_map,
                  }
         torch.save(state, os.path.join(net_to_save_path, saved_model_name))
@@ -332,12 +337,6 @@ def test(epoch):
 
         
 def write_history(train_or_test, acc, loss, predictions):
-    if not os.path.isdir(net_to_save_dir):
-        os.mkdir(net_to_save_dir)
-    if not os.path.isdir(os.path.join(net_to_save_dir, str(opt.save_number))):
-        os.mkdir(os.path.join(net_to_save_dir, str(opt.save_number)))
-    if not os.path.isdir(net_to_save_path):
-        os.mkdir(net_to_save_path)
     with open(os.path.join(net_to_save_path, history_file_name), "a+", encoding="utf-8") as history_file:
         msg = train_or_test + " %.3f %.3f " % (acc, loss)
         if predictions:
@@ -358,20 +357,27 @@ def save_over_flag():
 
 
 if __name__ == "__main__":
+    if not os.path.isdir(net_to_save_dir):
+        os.mkdir(net_to_save_dir)
+    if not os.path.isdir(os.path.join(net_to_save_dir, str(opt.save_number))):
+        os.mkdir(os.path.join(net_to_save_dir, str(opt.save_number)))
+    if not os.path.isdir(net_to_save_path):
+        os.mkdir(net_to_save_path)
     if not over_flag:
         for epoch in range(start_epoch, opt.epoch, 1):
             print('\n------------Epoch: %d-------------' % epoch)
             train(epoch)
-            # for parameters in net.parameters():
-            #     print(parameters.size())
-            #     print(parameters[0][0][0])
-            #     break
-
-            # for name,parameters in net.named_parameters():
-            #     print(name,':',parameters.size())
-            #     print(parameters)
-            #     break
             test(epoch)
+            temp_internal -= 1
+            if temp_internal <= 0:
+                temp_internal = TEMP_EPOCH
+                print("Saving Temp Model...")
+                state = {'net': net.state_dict() if use_cuda else net,
+                     'best_test_acc': test_acc_map['best_acc'],
+                     'best_test_acc_epoch': test_acc_map['best_acc_epoch'],
+                     'cur_epoch': epoch,
+                     }
+                torch.save(state, os.path.join(net_to_save_path, saved_temp_model_name))
         print(train_acc_map)
         print(test_acc_map)
         save_over_flag()
