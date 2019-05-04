@@ -1,4 +1,4 @@
-# coding=utf-8
+﻿# coding=utf-8
 import os
 import math
 import torch
@@ -10,8 +10,13 @@ import torch.nn as nn
 填充 padding = P
 输出图片的大小为 N*N  N = (W-F+2P)/S + 1
                     W = (N-1)*S-2P+F
+感受野
+RF = 1 #待计算的feature map上的感受野大小
+for layer in （top layer To down layer）:
+    RF = ((RF - 1)* stride) + fsize  # 此处padding区域不考虑，其他和上述公式相同，只是RF刚开始变成1
                     
 论文：120*120 crop->96*96 as inputs
+
 '''
 
 class ACCNN(nn.Module):
@@ -29,8 +34,9 @@ class ACCNN(nn.Module):
                  using_fl=False):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACCNN, self).__init__()
-        self.input_size = 223
+        self.input_size = 96
         # x size [BATCHSIZE, 1, 120, 120]
+        # 测试论文
         # self.features = nn.Sequential(
         #     nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5),   # 64, 92, 92
         #     nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
@@ -41,36 +47,120 @@ class ACCNN(nn.Module):
         #     nn.ReLU(inplace=True),
         #     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5),  # 64, 36, 36
         #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=1),      # 64, 18, 18   36, 36
+        #     nn.MaxPool2d(kernel_size=2, stride=1),      # 64, 18, 18
         # )
         # self.classifier = nn.Sequential(
-        #     nn.Linear(64 * 36 * 36, 64),
+        #     nn.Linear(64 * 18 * 18, 64),
         #     nn.Dropout(p=0.6),
         #     nn.Linear(64, n_classes),
         #     nn.Dropout(p=0.6),
         #     nn.Softmax(1),
         # )
+        # 1 # 40
+        # self.features = nn.Sequential(
+        #     nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=1, dilation=2),  # 32, 88, 88
+        #     nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
+        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1, dilation=2),  # 32, 80, 80
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),  # 32, 76, 76
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(kernel_size=2),  # 32, 38, 38
+        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),  # 32, 34, 34
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),  # 32, 30, 30
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(kernel_size=2),  # 32, 15, 15
+        # )
+        # self.classifier = nn.Sequential(
+        #     # nn.ReLU(inplace=True),
+        #     nn.Linear(32 * 15 * 15, 128),
+        #     nn.Dropout(p=0.6),
+        #     # nn.ReLU(inplace=True),
+        #     nn.Linear(128, n_classes),
+        #     nn.Dropout(p=0.6),
+        #     nn.Softmax(1),
+        # )
+        # 2 # 55
+#         self.features = nn.Sequential(
+#             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1, dilation=2),  # 64, 88, 88
+#             nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 84, 84
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 40, 40
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2),  # 64, 20, 20
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 16, 16
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 12, 12
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2),  # 64, 6, 6
+#         )
+#         self.classifier = nn.Sequential(
+#             # nn.ReLU(inplace=True),
+#             nn.Linear(64 * 6 * 6, 256),
+#             nn.Dropout(p=0.6),
+#             # nn.ReLU(inplace=True),
+#             nn.Linear(256, n_classes),
+#             nn.Dropout(p=0.6),
+#             nn.Softmax(1),
+#         )
+        # 3 # 99
+#         self.features = nn.Sequential(
+#             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1, dilation=2),  # 64, 88, 88
+#             nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 42, 42
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 38, 38
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2),  # 64, 19, 19
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1, padding=2),  # 64, 19, 19
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1, padding=2),  # 64, 19, 19
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2),  # 64, 9, 9
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),  # 64, 9, 9
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),  # 64, 9, 9
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool2d(kernel_size=2),  # 64, 4, 4
+#         )
+#         self.classifier = nn.Sequential(
+#             # nn.ReLU(inplace=True),
+#             nn.Linear(64 * 4 * 4, 512),
+#             nn.Dropout(p=0.6),
+#             # nn.ReLU(inplace=True),
+#             nn.Linear(512, n_classes),
+#             nn.Dropout(p=0.6),
+#             nn.Softmax(1),
+#         )
+        # 4 # 72
         self.features = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=2),  # 64, 110, 110
+            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1, dilation=2),  # 64, 88, 88
             nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 53, 53
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),  # 64, 86, 86
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 24, 24
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),  # 64, 84, 84
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2),  # 64, 12, 12
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3),  # 64, 10, 10
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),  # 64, 82, 82
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),  # 64, 10, 10
+            nn.MaxPool2d(kernel_size=2, stride=1),  # 64, 81, 81
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2, padding=2),  # 64, 40, 40
             nn.ReLU(inplace=True),
-            nn.AvgPool2d(kernel_size=2),  # 64, 5, 5
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2, padding=2),  # 64, 20, 20
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2),  # 64, 10, 10
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),  # 64, 8, 8
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),  # 64, 6, 6
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=1),  # 64, 5, 5
         )
         self.classifier = nn.Sequential(
-            nn.ReLU(inplace=True),
             nn.Dropout(p=0.6),
-            nn.Linear(64 * 5 * 5, 100),
             nn.ReLU(inplace=True),
+            nn.Linear(64 * 5 * 5, 512),
             nn.Dropout(p=0.6),
-            nn.Linear(100, n_classes),
+            nn.Linear(512, n_classes),
             nn.Softmax(1),
         )
         self.dataset = dataset
