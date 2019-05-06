@@ -35,104 +35,6 @@ class ACCNN(nn.Module):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACCNN, self).__init__()
         self.input_size = 96
-        # x size [BATCHSIZE, 1, 120, 120]
-        # 测试论文
-        # self.features = nn.Sequential(
-        #     nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5),   # 64, 92, 92
-        #     nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
-        #     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5),   # 64, 88, 88
-        #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=2),      # 64, 44, 44
-        #     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5),  # 64, 40, 40
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5),  # 64, 36, 36
-        #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=2, stride=1),      # 64, 18, 18
-        # )
-        # self.classifier = nn.Sequential(
-        #     nn.Linear(64 * 18 * 18, 64),
-        #     nn.Dropout(p=0.6),
-        #     nn.Linear(64, n_classes),
-        #     nn.Dropout(p=0.6),
-        #     nn.Softmax(1),
-        # )
-        # 1 # 40
-        # self.features = nn.Sequential(
-        #     nn.Conv2d(in_channels=1, out_channels=32, kernel_size=5, stride=1, dilation=2),  # 32, 88, 88
-        #     nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
-        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1, dilation=2),  # 32, 80, 80
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),  # 32, 76, 76
-        #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=2),  # 32, 38, 38
-        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),  # 32, 34, 34
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(in_channels=32, out_channels=32, kernel_size=5, stride=1),  # 32, 30, 30
-        #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=2),  # 32, 15, 15
-        # )
-        # self.classifier = nn.Sequential(
-        #     # nn.ReLU(inplace=True),
-        #     nn.Linear(32 * 15 * 15, 128),
-        #     nn.Dropout(p=0.6),
-        #     # nn.ReLU(inplace=True),
-        #     nn.Linear(128, n_classes),
-        #     nn.Dropout(p=0.6),
-        #     nn.Softmax(1),
-        # )
-        # 2 # 55
-#         self.features = nn.Sequential(
-#             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1, dilation=2),  # 64, 88, 88
-#             nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 84, 84
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 40, 40
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2),  # 64, 20, 20
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 16, 16
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 12, 12
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2),  # 64, 6, 6
-#         )
-#         self.classifier = nn.Sequential(
-#             # nn.ReLU(inplace=True),
-#             nn.Linear(64 * 6 * 6, 256),
-#             nn.Dropout(p=0.6),
-#             # nn.ReLU(inplace=True),
-#             nn.Linear(256, n_classes),
-#             nn.Dropout(p=0.6),
-#             nn.Softmax(1),
-#         )
-        # 3 # 99
-#         self.features = nn.Sequential(
-#             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1, dilation=2),  # 64, 88, 88
-#             nn.ReLU(inplace=True),  # 使用nn.ReLU(inplace = True) 能将激活函数ReLU的输出直接覆盖保存于模型的输入之中，节省不少显存
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=2),  # 64, 42, 42
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1),  # 64, 38, 38
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2),  # 64, 19, 19
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1, padding=2),  # 64, 19, 19
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, stride=1, padding=2),  # 64, 19, 19
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2),  # 64, 9, 9
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),  # 64, 9, 9
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),  # 64, 9, 9
-#             nn.ReLU(inplace=True),
-#             nn.MaxPool2d(kernel_size=2),  # 64, 4, 4
-#         )
-#         self.classifier = nn.Sequential(
-#             # nn.ReLU(inplace=True),
-#             nn.Linear(64 * 4 * 4, 512),
-#             nn.Dropout(p=0.6),
-#             # nn.ReLU(inplace=True),
-#             nn.Linear(512, n_classes),
-#             nn.Dropout(p=0.6),
-#             nn.Softmax(1),
-#         )
         # 4 # 72
         self.features = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1, dilation=2),  # 64, 88, 88
@@ -202,15 +104,11 @@ class ACCNN(nn.Module):
         print('Init ACCNN model over!')
 
     def forward(self, x):
-        # print(x.size())
         x = self.features(x)
-        # print(x.size())
         if self.virtualize:
             self.features_out.append(x.clone())
         x = x.view(-1, self.num_flat_features(x))
-        # print(x.size())
         x = self.classifier(x)
-        # print(x.size())
         return x
 
     def num_flat_features(self, x):
@@ -221,6 +119,7 @@ class ACCNN(nn.Module):
         return num_features
 
     def clean_features_out(self):
+        del self.features_out
         self.features_out = []
 
     def _initialize_weights(self):

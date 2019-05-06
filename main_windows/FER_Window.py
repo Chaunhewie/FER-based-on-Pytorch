@@ -93,11 +93,17 @@ class FERWindow(QMainWindow):
         self.show()
         QApplication.processEvents()
 
+        # 加载模型参数
         self.init_model_thread = InitModelThread(model_root_pre_path, dataset="FER2013")  # 工作的线程
         self.init_model_thread._signal.connect(self.init_load_model_slot)
         self.init_model_thread.start()
 
     def init_load_model_slot(self, model_controller):
+        """
+        加载模型参数线程的槽
+        :param model_controller: 线程返回的信号，ModelController
+        :return: 无
+        """
         self.model_controller = model_controller
         self.show_pic_label.setText("显示图片")
         self.show_res_label.setText("显示图片")
@@ -111,6 +117,10 @@ class FERWindow(QMainWindow):
         QApplication.processEvents()
 
     def open_image(self):
+        """
+        打开图片，并输入模型进行识别，界面更新处理结果
+        :return:
+        """
         # 打开并展示一张图片
         img_path, _ = QFileDialog.getOpenFileName(None, "打开图片", "", "*.png;*.jpg;;All Files(*)")
         if len(img_path) <= 0:
@@ -131,6 +141,13 @@ class FERWindow(QMainWindow):
         self.fer_worker_thread.start()
 
     def fer_worker_thread_slot(self, img_origin, res, duration):
+        """
+        人脸识别线程的返回槽
+        :param img_origin: 原图
+        :param res: 结果(face_box, emotion)
+        :param duration: 通过时间
+        :return: 无
+        """
         face_box, emotion = res
         # 输入打开的图片到模型中识别并将结果展示
         self.show_emotion_label.setText("预测表情：" + emotion)

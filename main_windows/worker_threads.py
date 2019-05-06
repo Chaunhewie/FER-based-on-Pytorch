@@ -6,6 +6,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from main_windows.model_controller import ModelController
 
 
+# 初始化模型和模型参数的工作线程
 class InitModelThread(QThread):
     #  通过类成员对象定义信号对象
     _signal = pyqtSignal(ModelController)
@@ -23,6 +24,7 @@ class InitModelThread(QThread):
         self._signal.emit(model_controller)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
 
 
+# 人脸识别的工作线程
 class FERWorkerThread(QThread):
     #  通过类成员对象定义信号对象
     _signal = pyqtSignal(QPixmap, tuple, float)

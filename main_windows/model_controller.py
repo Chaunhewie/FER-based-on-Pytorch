@@ -15,6 +15,7 @@ use_cuda = torch.cuda.is_available()
 use_cuda = False
 DEVICE = torch.device("cuda" if use_cuda else "cpu")
 
+
 class ModelController():
     '''
     用于系统对于模型的控制，以及使用模型进行表情识别
@@ -36,9 +37,14 @@ class ModelController():
         ])
         self.use_crop_in_transforms = False
 
-    def fer_recognization(self, img_arr, weights_fl=0.5, resize_size=350):
-        # img = Image.open(img_path)
-        # img = img.convert("L").resize((resize_size, resize_size), Image.ANTIALIAS)
+    def fer_recognization(self, img_arr, weights_fl=0.5):
+        """
+        人脸识别
+        :param img_arr: img的numpy array对象
+        :param weights_fl: 对于face_landmarks的权重，0~1之间
+        :param resize_size:
+        :return:
+        """
         img = Image.fromarray(img_arr).convert("L")
         img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
         landmarks_img = get_img_with_landmarks(img, face_landmarks)
@@ -70,5 +76,9 @@ class ModelController():
         return face_box, self.model.output_map[predicted.item()]
 
     def clean_model_features_out(self):
+        """
+        清空特征层的输出缓存
+        :return: 无
+        """
         self.model.clean_features_out()
         self.model_fl.clean_features_out()
