@@ -19,12 +19,12 @@ class ModelController():
     '''
     用于系统对于模型的控制，以及使用模型进行表情识别
     '''
-    def __init__(self, model_root_pre_path='', *args, **kwargs):
+    def __init__(self, model_root_pre_path='', dataset='FER2013', *args, **kwargs):
         self.model_root_pre_path = model_root_pre_path
 
-        self.model = ACCNN(7, pre_trained=True, root_pre_path=model_root_pre_path, fold=5, virtualize=True,
+        self.model = ACCNN(7, pre_trained=True, dataset=dataset, root_pre_path=model_root_pre_path, fold=5, virtualize=True,
                            using_fl=False).to(DEVICE)
-        self.model_fl = ACCNN(7, pre_trained=True, root_pre_path=model_root_pre_path, fold=5, virtualize=True,
+        self.model_fl = ACCNN(7, pre_trained=True, dataset=dataset, root_pre_path=model_root_pre_path, fold=5, virtualize=True,
                               using_fl=True).to(DEVICE)
         self.transform_test = transforms.Compose([
             transforms.Resize(int(self.model.input_size)),

@@ -29,3 +29,7 @@ BUTTON_CSS = "QPushButton{border-image:url(%sResources/Rectangle.png)}" \
              "QPushButton{padding:2px 4px}" \
              "QPushButton{font-size:20px;}" \
              "QPushButton{font-family:宋体;}" \
+
+COMBOBOX_CSS = "COMBOBOX_CSS{color:rgba(10,10,10,200);}" \
+               "COMBOBOX_CSS{font-size:20px;}" \
+               "COMBOBOX_CSS{font-family:宋体;}"
