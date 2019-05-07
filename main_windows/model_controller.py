@@ -1,6 +1,7 @@
 # coding=utf-8
 import sys
 import torch
+import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
 from PIL import Image
@@ -20,7 +21,7 @@ class ModelController():
     '''
     用于系统对于模型的控制，以及使用模型进行表情识别
     '''
-    def __init__(self, model_root_pre_path='', dataset='FER2013', tr_using_crop=True, *args, **kwargs):
+    def __init__(self, model_root_pre_path='', dataset='FER2013', tr_using_crop=False, *args, **kwargs):
         self.model_root_pre_path = model_root_pre_path
 
         self.model = ACCNN(7, pre_trained=True, dataset=dataset, root_pre_path=model_root_pre_path, fold=5, virtualize=True,
@@ -51,37 +52,68 @@ class ModelController():
         :param resize_size:
         :return:
         """
+        # 模型的输入准备
         img = Image.fromarray(img_arr).convert("L")
         img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
         landmarks_img = get_img_with_landmarks(img, face_landmarks)
         inputs = self.transform_test(img)
         inputs_fl = self.transform_test(landmarks_img)
+        self.clean_model_features_out()
 
+        # 模型输入
+        outputs, vir = self.model_test(self.model, inputs)
+        outputs_fl, vir_fl = self.model_test(self.model_fl, inputs_fl)
+
+        # 对输出进行处理
+        real_outputs = (1 - weights_fl) * outputs.data + weights_fl * outputs_fl.data
+        _, predicted = torch.max(real_outputs, 1)  # 此处 1 表示维度
+        # print(predicted)
+        softmax_rate = (
+            np.array(outputs.data[0]), np.array(outputs_fl.data[0]), np.array(real_outputs.data[0]))
+        return face_box, self.model.output_map[predicted.item()], softmax_rate, [vir, vir_fl]
+
+    def model_test(self, model, inputs):
         bs = 1
         ncrops = 1
         if self.tr_using_crop:
             ncrops, c, h, w = np.shape(inputs)
         else:
             c, h, w = np.shape(inputs)
-        # print(np.shape(inputs))
+        model.clean_features_out()
+
+        # 模型中间层可视化抽取准备
+        features_hook = []
+
+        def get_features_hook(self, input, output):
+            features_hook.append(input)
+
+        handlers = []
+        for layer in model.named_modules():
+            if isinstance(layer[1], nn.Conv2d):
+                handlers.append(layer[1].register_forward_hook(get_features_hook))
+
+        # 模型测试和识别
+        model.eval()
         with torch.no_grad():
-            inputs, inputs_fl = inputs.view(-1, c, h, w), inputs_fl.view(-1, c, h, w)
+            inputs = inputs.view(-1, c, h, w)
             if use_cuda:
-                inputs, inputs_fl = inputs.to(DEVICE), inputs_fl.to(DEVICE)
-            self.clean_model_features_out()
-            inputs, inputs_fl = Variable(inputs), Variable(inputs_fl)
-            outputs, outputs_fl = self.model(inputs), self.model_fl(inputs_fl)
+                inputs = inputs.to(DEVICE)
+            inputs = Variable(inputs)
+            outputs = model(inputs)
             if self.tr_using_crop:
-                outputs_avg = outputs.view(bs, ncrops, -1).mean(1)  # avg over crops
-                outputs_fl_avg = outputs_fl.view(bs, ncrops, -1).mean(1)  # avg over crops
+                outputs = outputs.view(bs, ncrops, -1).mean(1)  # avg over crops
             else:
-                outputs_avg = outputs
-                outputs_fl_avg = outputs_fl
-            real_outputs = (1-weights_fl)*outputs_avg.data+weights_fl*outputs_fl_avg.data
-            _, predicted = torch.max(real_outputs, 1)  # 此处 1 表示维度
-            # print(predicted)
-            softmax_rate = (outputs_avg.data, outputs_fl_avg.data, real_outputs.data)
-        return face_box, self.model.output_map[predicted.item()], softmax_rate
+                outputs = outputs
+
+        # 删除绑定
+        for handler in handlers:
+            handler.remove()
+        # 读取抽取的中间层输出
+        virtualizations = []
+        for conv_number in range(len(features_hook)):
+            virtualizations.append(features_hook[conv_number][0].cpu())
+        virtualizations.append(model.features_out[0].cpu())
+        return outputs, virtualizations
 
     def clean_model_features_out(self):
         """
@@ -90,3 +122,4 @@ class ModelController():
         """
         self.model.clean_features_out()
         self.model_fl.clean_features_out()
+

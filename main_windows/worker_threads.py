@@ -1,15 +1,17 @@
 # coding=utf-8
 import time
 import numpy as np
+import traceback
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QThread, pyqtSignal
 from main_windows.model_controller import ModelController
-import traceback
+from virtualize import build_and_draw_img_of_features
+
 
 # 初始化模型和模型参数的工作线程
 class InitModelThread(QThread):
     #  通过类成员对象定义信号对象
-    _signal = pyqtSignal(ModelController)
+    signal = pyqtSignal(ModelController)
 
     def __init__(self, model_root_pre_path, dataset, tr_using_crop):
         super(InitModelThread, self).__init__()
@@ -21,20 +23,24 @@ class InitModelThread(QThread):
         self.wait()
 
     def run(self):
-        model_controller = ModelController(model_root_pre_path=self.model_root_pre_path, dataset=self.dataset, tr_using_crop=self.tr_using_crop)
-        self._signal.emit(model_controller)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
+        try:
+            model_controller = ModelController(model_root_pre_path=self.model_root_pre_path, dataset=self.dataset, tr_using_crop=self.tr_using_crop)
+            self.signal.emit(model_controller)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
+        except:
+            traceback.print_exc()
 
 
 # 人脸识别的工作线程
 class FERWorkerThread(QThread):
     #  通过类成员对象定义信号对象
-    _signal = pyqtSignal(QPixmap, tuple, float)
+    signal = pyqtSignal(QPixmap, tuple, float, int)
 
-    def __init__(self, model_controller, img_origin):
+    def __init__(self, model_controller, img_origin, vir_index):
         super(FERWorkerThread, self).__init__()
         self.model_controller = model_controller
         self.img_origin = img_origin
         self.QPixmap_Channels_Count = 4
+        self.vir_index = vir_index
 
     def __del__(self):
         self.wait()
@@ -51,6 +57,32 @@ class FERWorkerThread(QThread):
             end_time = time.time()
             duration = round((end_time - start_time) * 1000, 2)
             # 回传
-            self._signal.emit(self.img_origin, res, duration)
+            self.signal.emit(self.img_origin, res, duration, self.vir_index)
+        except:
+            traceback.print_exc()
+
+
+# 提取模型中间层输出后的可视化工作线程
+class VirtualizeWorkerThread(QThread):
+    #  通过类成员对象定义信号对象
+    signal = pyqtSignal(str, int, bool, int)
+
+    def __init__(self, images, img_name_pre, img_save_dir, index, is_fl, vir_index):
+        super(VirtualizeWorkerThread, self).__init__()
+        self.images = images
+        self.img_save_dir = img_save_dir
+        self.index = index
+        self.img_name_pre = img_name_pre
+        self.is_fl = is_fl
+        self.vir_index = vir_index
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        try:
+            img_saved_path = build_and_draw_img_of_features(self.images, self.index, img_name_pre=self.img_name_pre,
+                                                            img_save_dir=self.img_save_dir)
+            self.signal.emit(img_saved_path, self.index, self.is_fl, self.vir_index)
         except:
             traceback.print_exc()

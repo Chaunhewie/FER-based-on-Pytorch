@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QMainWindow, QPushButton, QLabel, QFileDialog, QAppl
 from PyQt5.QtCore import Qt, QRect, QSize
 
 from main_windows.css import *
-from main_windows.worker_threads import InitModelThread, FERWorkerThread
+from main_windows.worker_threads import InitModelThread, FERWorkerThread, VirtualizeWorkerThread
 
 DEBUG = False
 ENABLED_DATASET = ['CK+', 'JAFFE', 'FER2013']
@@ -15,9 +15,12 @@ ENABLED_DATASET = ['CK+', 'JAFFE', 'FER2013']
 
 class FERWindow(QMainWindow):
 
-    def __init__(self, root_pre_path='main_windows', tr_using_crop=True, *args, **kwargs):
+    def __init__(self, root_pre_path='main_windows', tr_using_crop=False, *args, **kwargs):
         super(FERWindow, self).__init__(*args, **kwargs)
         self.tr_using_crop = tr_using_crop
+        self.n_classes = 7  # 模型输出为7个类
+        self.n_features_conv = 9  # 模型由8层卷积层，用于可视化
+        self.vir_index = 0  # 用于标识当前识别图片的次数，否则可视化工作线程会覆盖
 
         model_root_pre_path = ""
         css_root_pre_path = root_pre_path + "/"
@@ -29,7 +32,7 @@ class FERWindow(QMainWindow):
         self.css_root_pre_path = css_root_pre_path
 
         # 窗口大小
-        self.resize(1900, 980)
+        self.resize(1950, 980)
 
         # 打开图片的btn
         self.get_pic_btn = QPushButton(self)
@@ -41,7 +44,8 @@ class FERWindow(QMainWindow):
         # 切换模型训练参数的选项框
         self.choose_dataset_combobox = QComboBox(self)
         self.choose_dataset_combobox.addItems(ENABLED_DATASET)
-        self.choose_dataset_combobox.setCurrentText(ENABLED_DATASET[2])
+        self.dataset = ENABLED_DATASET[2]
+        self.choose_dataset_combobox.setCurrentText(self.dataset)
         self.choose_dataset_combobox.currentIndexChanged.connect(lambda: self.change_dataset(
             self.choose_dataset_combobox.currentText()))
         self.choose_dataset_combobox.setFixedSize(QSize(100, 40))
@@ -79,27 +83,93 @@ class FERWindow(QMainWindow):
             self.show_debug_label.move(20, 500)
             self.show_debug_label.setStyleSheet(SHOW_DEBUG_LABEL_CSS)
 
-        # 展示模型可视化结果
-        self.virtulizing_label = QLabel(self)
-        self.virtulizing_label.setText("正在初始化...")
-        self.virtulizing_label.setFixedSize(1400, 700)
-        self.virtulizing_label.move(450, 100)
-        self.virtulizing_label.setAlignment(Qt.AlignCenter)
-        self.virtulizing_label.setStyleSheet(SHOW_PIC_LABEL_CSS)
-
+        # 展示模型结构
+        self.model_structer_pic_label = QLabel(self)
+        self.model_structer_pic_label.setText("正在初始化...")
+        self.model_structer_pic_label.setFixedSize(1300, 650)
+        self.model_structer_pic_label.move(450, 165)
+        self.model_structer_pic_label.setAlignment(Qt.AlignCenter)
+        self.model_structer_pic_label.setStyleSheet(SHOW_PIC_LABEL_CSS)
+        # 展示模型预测的结果
+        self.output_class_labels = []
+        self.softmax_rate_labels = []
+        self.softmax_rate_fl_labels = []
+        self.softmax_rate_real_labels = []
+        for i in range(self.n_classes):
+            label = QLabel(self)
+            label.setText("")
+            label.setFixedSize(50, 20)
+            label.move(1720, 205+i*50)
+            label.setStyleSheet(SHOW_INFO_LABEL_CSS)
+            self.output_class_labels.append(label)
+            label = QLabel(self)
+            label.setText("")
+            label.setFixedSize(75, 15)
+            label.move(1750, 225+i*50)
+            label.setStyleSheet(SHOW_RATE_LABEL_CSS)
+            self.softmax_rate_labels.append(label)
+            label = QLabel(self)
+            label.setText("")
+            label.setFixedSize(75, 15)
+            label.move(1750, 225+i*50+15)
+            label.setStyleSheet(SHOW_RATE_FL_LABEL_CSS)
+            self.softmax_rate_fl_labels.append(label)
+            label = QLabel(self)
+            label.setText("")
+            label.setFixedSize(75, 15)
+            label.move(1830, 225+i*50+7)
+            label.setStyleSheet(SHOW_RATE_REAL_LABEL_CSS)
+            self.softmax_rate_real_labels.append(label)
+        # 展示模型的中间输出可视化
+        self.virtualizations_name_labels = []
+        self.virtualizations_labels = []
+        self.virtualizations_fl_name_labels = []
+        self.virtualizations_fl_labels = []
+        self.virtualizations_x_positions = [450, 575, 700, 825, 950, 1075, 1200, 1325, 1450, 1575]
+        for i in range(self.n_features_conv):
+            label = QLabel(self)
+            label.setText("conv"+str(i+1))
+            label.setFixedSize(100, 20)
+            label.move(self.virtualizations_x_positions[i], 30)
+            label.setStyleSheet(SHOW_RATE_LABEL_CSS)
+            self.virtualizations_name_labels.append(label)
+            label = QLabel(self)
+            label.setText("可视化图片")
+            label.setFixedSize(100, 100)
+            label.move(self.virtualizations_x_positions[i], 50)
+            label.setStyleSheet(SHOW_RATE_LABEL_CSS)
+            self.virtualizations_labels.append(label)
+            label = QLabel(self)
+            label.setText("conv"+str(i+1))
+            label.setFixedSize(100, 20)
+            label.move(self.virtualizations_x_positions[i], 820)
+            label.setStyleSheet(SHOW_RATE_FL_LABEL_CSS)
+            self.virtualizations_fl_name_labels.append(label)
+            label = QLabel(self)
+            label.setText("可视化图片")
+            label.setFixedSize(100, 100)
+            label.move(self.virtualizations_x_positions[i], 840)
+            label.setStyleSheet(SHOW_RATE_FL_LABEL_CSS)
+            self.virtualizations_fl_labels.append(label)
         # 其他的变量声明初始化
         self.model_controller = None
         self.img_model_struct_path = os.path.join(self.root_pre_path, "Resources", "ACCNN_model_structer.png")
         self.fer_worker_thread = None
+        self.virtualize_worker_threads = []
+        self.virtualize_fl_worker_threads = []
+        for i in range(self.n_features_conv):
+            self.virtualize_worker_threads.append(None)
+            self.virtualize_fl_worker_threads.append(None)
 
         self.setWindowTitle("My FER Program")
+        self.showMaximized()
         self.show()
         QApplication.processEvents()
 
         # 加载模型参数
         self.init_model_thread = InitModelThread(model_root_pre_path, dataset="FER2013",
                                                  tr_using_crop=self.tr_using_crop)  # 工作的线程
-        self.init_model_thread._signal.connect(self.init_load_model_slot)
+        self.init_model_thread.signal.connect(self.init_load_model_slot)
         self.init_model_thread.start()
 
     def init_load_model_slot(self, model_controller):
@@ -113,11 +183,13 @@ class FERWindow(QMainWindow):
         self.show_res_label.setText("显示图片")
         img_model_struct = QPixmap(self.img_model_struct_path)
         if img_model_struct.width() / img_model_struct.height() > \
-            self.virtulizing_label.width() / self.virtulizing_label.height():
-            img_model_struct = img_model_struct.scaledToWidth(self.virtulizing_label.width())
+            self.model_structer_pic_label.width() / self.model_structer_pic_label.height():
+            img_model_struct = img_model_struct.scaledToWidth(self.model_structer_pic_label.width())
         else:
-            img_model_struct = img_model_struct.scaledToHeight(self.virtulizing_label.height())
-        self.virtulizing_label.setPixmap(img_model_struct)
+            img_model_struct = img_model_struct.scaledToHeight(self.model_structer_pic_label.height())
+        self.model_structer_pic_label.setPixmap(img_model_struct)
+        for i in range(self.n_classes):
+            self.output_class_labels[i].setText(self.model_controller.model.output_map[i])
         QApplication.processEvents()
 
     def open_image(self):
@@ -137,14 +209,20 @@ class FERWindow(QMainWindow):
             img_origin = img_origin.scaledToHeight(self.show_pic_label.height())
         self.show_pic_label.setPixmap(img_origin)
         self.show_res_label.setText("识别中...")
+        for i in range(self.n_features_conv):
+            self.virtualizations_labels[i].clear()
+            self.virtualizations_labels[i].setText("可视化图片")
+            self.virtualizations_fl_labels[i].clear()
+            self.virtualizations_fl_labels[i].setText("可视化图片")
         QApplication.processEvents()
 
         # 调用人脸识别的线程进行工作
-        self.fer_worker_thread = FERWorkerThread(self.model_controller, img_origin)
-        self.fer_worker_thread._signal.connect(self.fer_worker_thread_slot)
+        self.vir_index += 1
+        self.fer_worker_thread = FERWorkerThread(self.model_controller, img_origin, self.vir_index)
+        self.fer_worker_thread.signal.connect(self.fer_worker_thread_slot)
         self.fer_worker_thread.start()
 
-    def fer_worker_thread_slot(self, img_origin, res, duration):
+    def fer_worker_thread_slot(self, img_origin, res, duration, vir_index):
         """
         人脸识别线程的返回槽
         :param img_origin: 原图
@@ -152,9 +230,11 @@ class FERWindow(QMainWindow):
         :param duration: 通过时间
         :return: 无
         """
+        if vir_index != self.vir_index:
+            return
         try:
-            face_box, emotion, softmax_rate = res
-            print("slot:", res)
+            face_box, emotion, softmax_rate, virtualizations = res
+            # print(len(virtualizations), len(virtualizations[0]), len(virtualizations[1]))
             # 输入打开的图片到模型中识别并将结果展示
             self.show_emotion_label.setText("预测表情：" + emotion)
             self.show_delay_label.setText("通过时间：" + str(duration) + "ms")
@@ -165,6 +245,48 @@ class FERWindow(QMainWindow):
             img_with_face_box = self.draw_img_with_face_box(img_origin.copy(), face_box)
             self.show_res_label.setText("")
             self.show_res_label.setPixmap(img_with_face_box)
+            QApplication.processEvents()
+
+            # 更新神经元节点的QLabel展示值
+            for i in range(self.n_classes):
+                self.softmax_rate_labels[i].setText("%.2e" % softmax_rate[0][i])
+                self.softmax_rate_fl_labels[i].setText("%.2e" % softmax_rate[1][i])
+                self.softmax_rate_real_labels[i].setText("%.2e" % softmax_rate[2][i])
+                QApplication.processEvents()
+
+            # 更新可视化中间层图像
+            for i in range(self.n_features_conv):
+                images, images_fl = virtualizations[0][i], virtualizations[1][i]
+                img_save_dir = os.path.join(self.model_root_pre_path, "Saved_Virtualizations")
+
+                self.virtualize_worker_threads[i] = VirtualizeWorkerThread(images, "ACCNN_" + self.dataset,
+                                                                           img_save_dir, i, False, vir_index)
+                self.virtualize_worker_threads[i].signal.connect(self.virtualize_worker_thread_slot)
+                self.virtualize_worker_threads[i].start()
+
+                self.virtualize_fl_worker_threads[i] = VirtualizeWorkerThread(images_fl, "ACCNN_fl_" + self.dataset,
+                                                                              img_save_dir, i, True, vir_index)
+                self.virtualize_fl_worker_threads[i].signal.connect(self.virtualize_worker_thread_slot)
+                self.virtualize_fl_worker_threads[i].start()
+        except:
+            traceback.print_exc()
+
+    def virtualize_worker_thread_slot(self, img_saved_path, i, is_fl, vir_index):
+        if vir_index != self.vir_index:
+            return
+        try:
+            if is_fl:
+                vir_label = self.virtualizations_fl_labels[i]
+            else:
+                vir_label = self.virtualizations_labels[i]
+
+            img = QPixmap(img_saved_path)
+            if img.width() > img.height():
+                img = img.scaledToWidth(self.virtualizations_labels[i].width())
+            else:
+                img = img.scaledToHeight(self.virtualizations_labels[i].height())
+            vir_label.setPixmap(img)
+            QApplication.processEvents()
         except:
             traceback.print_exc()
 
@@ -194,9 +316,10 @@ class FERWindow(QMainWindow):
         """
         self.show_pic_label.setText("正在初始化...")
         self.show_res_label.setText("正在初始化...")
+        self.dataset = dataset
         self.init_model_thread = InitModelThread(self.model_root_pre_path, dataset=dataset,
                                                  tr_using_crop=self.tr_using_crop)  # 工作的线程
-        self.init_model_thread._signal.connect(self.init_load_model_slot)
+        self.init_model_thread.signal.connect(self.init_load_model_slot)
         self.init_model_thread.start()
 
 

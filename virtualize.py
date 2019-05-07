@@ -6,7 +6,8 @@ from math import ceil
 import torch.nn as nn
 import numpy as np
 import utils.utils as utils
-
+from transforms.functional import normalize
+from main_windows.model_controller import IMG_MEAN, IMG_STD
 
 def draw_features_of_net(net, test_inputs, img_name_pre="", img_save_dir="Saved_Virtualizations"):
     """
@@ -46,7 +47,7 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", img_save_dir="Saved_
                                    img_name_pre=img_name_pre, img_save_dir=img_save_dir)
 
 
-def build_and_draw_img_of_features(images, feature_index, type, img_name_pre="", img_save_dir="Saved_Virtualizations"):
+def build_and_draw_img_of_features(images, feature_index, type="", img_name_pre="", img_save_dir="Saved_Virtualizations"):
     """
     构建并绘制特征层的图像
     :param images: 钩子函数获取的特征层
@@ -54,7 +55,7 @@ def build_and_draw_img_of_features(images, feature_index, type, img_name_pre="",
     :param type: 特征类型('in'表示特征层的输入，'out'表示特征层的输出，'end'表示网络最终特征输出)
     :param img_name_pre: 存储的特征层 img 名称前缀
     :param img_save_dir: 存储的特征层 img 路径
-    :return:
+    :return: 保存的img路径
     """
     # print(images.shape)
     img_save_name = img_name_pre + "_feature_layer_" + str(feature_index) + "_" + type
@@ -64,21 +65,25 @@ def build_and_draw_img_of_features(images, feature_index, type, img_name_pre="",
         img = build_img_of_features(image)
         if not os.path.exists(img_save_dir):
             os.mkdir(img_save_dir)
-        utils.draw_img(img, os.path.join(img_save_dir, img_save_name + "_of_img_" + str(i)), plt_show=False)
+        img_save_path = os.path.join(img_save_dir, img_save_name + "_of_img_" + str(i))
+        utils.draw_img(img, img_save_path, plt_show=False)
         break
-
+    return img_save_path
 
 def build_img_of_features(image, blank_size=2):
     """
     构建特征层的 Image 对象。image为中间某层的输入或者输出，将这些 image 构建为一个 Image 对象，用于存为一个图片
     :param image: 特征层的输入或者输出
     :param blank_size: 样图之间的间距（pixel）
-    :return: 构件好的 Image
+    :return: 构建好的 Image
     """
     if len(image.shape) == 2:
         image = image.reshape(1, image.shape[0], image.shape[1])
     image_shape = image.shape
-    print(image_shape)
+    # print(image_shape)
+    # print(image)
+    # image = normalize(image, IMG_MEAN, IMG_STD)
+    # print(image)
     col_num = int(ceil(image_shape[0] ** 0.5))
     row_num = int(ceil(image_shape[0] / col_num))
     height = row_num * image_shape[1]
@@ -93,6 +98,7 @@ def build_img_of_features(image, blank_size=2):
             for col_pixel_index in range(image_shape[2]):
                 img_arr[start_row_index + row_pixel_index][start_col_index + col_pixel_index] = \
                     image[j][row_pixel_index][col_pixel_index]
+
     return Image.fromarray(img_arr)
 
 
@@ -195,5 +201,6 @@ if __name__ == "__main__":
         inputs, targets = inputs.to(DEVICE), targets.to(DEVICE)
     inputs, targets = Variable(inputs), Variable(targets)
 
+    net.eval()
     draw_features_of_net(net, inputs, img_name_pre=net_name+"_"+dataset)
     draw_weights_of_net(net, img_name_pre=net_name+"_"+dataset)

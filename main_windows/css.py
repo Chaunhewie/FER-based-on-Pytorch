@@ -14,6 +14,21 @@ SHOW_INFO_LABEL_CSS = "QLabel{color:rgba(10,10,10,200);}" \
                       "QLabel{font-weight:bold;}" \
                       "QLabel{font-family:宋体;}"
 
+SHOW_RATE_LABEL_CSS = "QLabel{color:rgba(118,141,50,200);}" \
+                      "QLabel{font-size:15px;}" \
+                      "QLabel{font-weight:bold;}" \
+                      "QLabel{font-family:宋体;}"
+
+SHOW_RATE_FL_LABEL_CSS = "QLabel{color:rgba(40,135,114,200);}" \
+                         "QLabel{font-size:15px;}" \
+                         "QLabel{font-weight:bold;}" \
+                         "QLabel{font-family:宋体;}"
+
+SHOW_RATE_REAL_LABEL_CSS = "QLabel{color:rgba(192,0,0,200);}" \
+                           "QLabel{font-size:15px;}" \
+                           "QLabel{font-weight:bold;}" \
+                           "QLabel{font-family:宋体;}"
+
 SHOW_DEBUG_LABEL_CSS = "QLabel{color:rgba(10,10,10,200);}" \
                        "QLabel{font-size:10px;}" \
                        "QLabel{font-family:宋体;}"

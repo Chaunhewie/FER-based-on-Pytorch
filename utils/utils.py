@@ -7,12 +7,14 @@ Some helper functions for PyTorch, including:
 '''
 import os
 import numpy as np
-from PIL import Image
+import matplotlib
+matplotlib.use('Agg')  # 解决多线程调用导致matplot的GUI加载冲突
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+import threading
+
+plt_Lock = threading.Lock()
 
 Total_Bar_Length = 30
-
 
 def progress_bar(cur, tot, msg):
     s = "\r["
@@ -44,17 +46,19 @@ def draw_img(img, save_path="", plt_show=True, log_enabled=True):
     :param img: img
     :return: None
     """
-    fig = plt.figure(figsize=(20, 20))  # figsize: width, height in inches
-    ax = fig.add_subplot(111)
-    ax.imshow(np.array(img), cmap="gray")
-    if len(save_path) > 0:
-        plt.savefig(save_path)
-        if log_enabled:
-            print("saved fig to %s" % save_path)
-    if plt_show:
-        plt.show()
-    else:
-        plt.close('all')
+    global plt_Lock
+    with plt_Lock:
+        fig = plt.figure(figsize=(20, 20))  # figsize: width, height in inches
+        ax = fig.add_subplot(111)
+        ax.imshow(np.array(img), cmap="gray")
+        if len(save_path) > 0:
+            plt.savefig(save_path)
+            if log_enabled:
+                print("saved fig to %s" % save_path)
+        if plt_show:
+            plt.show()
+        else:
+            plt.close('all')
 
 
 def num_of_parameters_of_net(net):

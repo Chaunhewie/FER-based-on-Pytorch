@@ -3,7 +3,6 @@ import os
 import face_recognition
 from PIL import Image
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 img_save_dir="Saved_Virtualizations"
@@ -84,6 +83,7 @@ def get_img_with_landmarks(img, landmarks, round_to_keep=15):
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     img_dir_pre_path = "E:\毕设\代码\my_scripts\data\CK+"
     classes = os.listdir(img_dir_pre_path)
     for c in classes:
