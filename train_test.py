@@ -45,10 +45,13 @@ parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture'
 # parser.add_argument('--model', default='ResNet101', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='ResNet152', type=str, help='CNN architecture')
 
-# 数据集选择
+# 数据集选择，以及对于数据预处理，是否使用TenCrop进行数据增强
 parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
+parser.add_argument('--tr_using_crop', default=True, type=bool, help='whether using TenCrop in data transform')
 # parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
+# parser.add_argument('--tr_using_crop', default=False, type=bool, help='whether using TenCrop in data transform')
 # parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
+# parser.add_argument('--tr_using_crop', default=False, type=bool, help='whether using TenCrop in data transform')
 
 # Other Parameters
 # 是否使用面部标记点进行训练
@@ -71,6 +74,7 @@ parser.add_argument('--lrd_se', default=180, type=int, help='learning rate decay
 parser.add_argument('--lrd_s', default=2, type=int, help='learning rate decay step')
 # 表示每次的lr的递减率，默认每递减一次乘一次0.9
 parser.add_argument('--lrd_r', default=0.9, type=float, help='learning rate decay rate')
+
 opt = parser.parse_args()
 
 train_acc_map = {'best_acc': 0, 'best_acc_epoch': -1, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
@@ -148,24 +152,37 @@ if not over_flag:
     # IMG_MEAN = [0.485, 0.456, 0.406]
     # IMG_STD = [0.229, 0.224, 0.225]
 
+    crop_img_size = int(net.input_size * 1.2)
     input_img_size = net.input_size
-    transform_train = transforms.Compose([
-        transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(30),
-        transforms.ToTensor(),
-        transforms.Normalize(IMG_MEAN, IMG_STD),
-    ])
-
-    test_img_size = int(input_img_size * 1.1)  # 测试时，图片resize大小
-    transform_test = transforms.Compose([
-        transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
-        transforms.ToTensor(),
-        transforms.Normalize(IMG_MEAN, IMG_STD),
-    ])
-    # transforms.Resize(test_img_size),
-    # transforms.TenCrop(input_img_size),
-    # transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
+    transform_using_crop = opt.tr_using_crop
+    if transform_using_crop:
+        transform_train = transforms.Compose([
+            transforms.Resize(crop_img_size),
+            transforms.TenCrop(input_img_size),
+            transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(IMG_MEAN, IMG_STD)(
+                                                         transforms.ToTensor()(
+                                                         transforms.RandomHorizontalFlip()(
+                                                         transforms.RandomRotation(30)(crop)))) for crop in crops])),
+        ])
+        transform_test = transforms.Compose([
+            transforms.Resize(crop_img_size),
+            transforms.TenCrop(input_img_size),
+            transforms.Lambda(lambda crops: torch.stack([transforms.Normalize(IMG_MEAN, IMG_STD)(
+                                                         transforms.ToTensor()(crop)) for crop in crops])),
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(30),
+            transforms.ToTensor(),
+            transforms.Normalize(IMG_MEAN, IMG_STD),
+        ])
+        transform_test = transforms.Compose([
+            transforms.Resize(input_img_size),  # 缩放将图片的最小边缩放为 input_img_size，因此如果输入是非正方形的，那么输出也不是正方形的
+            transforms.ToTensor(),
+            transforms.Normalize(IMG_MEAN, IMG_STD),
+        ])
 
     # criterion, target_type = nn.MSELoss(), 'fa'
     criterion, target_type = nn.CrossEntropyLoss(), 'ls'
@@ -209,7 +226,7 @@ def train(epoch, jump_out_lr=-1.):
     else:
         current_lr = opt.lr
     if epoch < opt.lre_je:
-        current_lr *= 5  # 解决一开始收敛慢的问题
+        current_lr *= 1.5  # 解决一开始收敛慢的问题
     print('learning_rate: %s' % str(current_lr))
     global Train_acc
     net.train()
@@ -219,6 +236,10 @@ def train(epoch, jump_out_lr=-1.):
     cur_train_acc = 0.
     time_start = time.time()
     for batch_idx, (inputs, targets) in enumerate(train_loader):
+        if transform_using_crop:
+            bs, ncrops, c, h, w = np.shape(inputs)
+            inputs = inputs.view(-1, c, h, w)
+            targets = torch.Tensor([[target] * ncrops for target in targets]).view(-1)
         if use_cuda:
             inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
         optimizer.zero_grad()
@@ -228,7 +249,8 @@ def train(epoch, jump_out_lr=-1.):
         # print("targets:", targets)
         loss = criterion(outputs, targets)
         loss.backward()
-        utils.clip_gradient(optimizer, 5*current_lr)  # 解决梯度爆炸 https://blog.csdn.net/u010814042/article/details/76154391
+        utils.clip_gradient(optimizer,
+                            2 * current_lr)  # 解决梯度爆炸 https://blog.csdn.net/u010814042/article/details/76154391
         optimizer.step()
 
         train_loss += float(loss.data)
@@ -260,10 +282,7 @@ def train(epoch, jump_out_lr=-1.):
         del outputs
         del predicted
     Train_acc = cur_train_acc
-    if train_acc_map['best_acc'] < Train_acc:
-        train_acc_map['best_acc'] = Train_acc
-        train_acc_map['best_acc_epoch'] = epoch
-    write_history('Train', cur_train_acc, train_loss / (batch_idx + 1), None)
+    write_history('Train', epoch, cur_train_acc, train_loss / (batch_idx + 1), None)
 
 
 # Testing
@@ -278,21 +297,20 @@ def test(epoch):
     time_start = time.time()
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(test_loader):
-            bs, c, h, w = np.shape(inputs)
-            # bs, ncrops, c, h, w = np.shape(inputs)
+            if transform_using_crop:
+                bs, ncrops, c, h, w = np.shape(inputs)
+                targets = torch.Tensor([[target] * ncrops for target in targets]).view(-1)
+            else:
+                bs, c, h, w = np.shape(inputs)
             inputs = inputs.view(-1, c, h, w)
             if use_cuda:
                 inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
             inputs, targets = Variable(inputs), Variable(targets)
             outputs = net(inputs)
 
-            # avg over crops if test_transform contains crop operations
-            # outputs_avg = outputs.view(bs, ncrops, -1).mean(1)
-            outputs_avg = outputs
-
-            loss = criterion(outputs_avg, targets)
+            loss = criterion(outputs, targets)
             private_test_loss += float(loss.data)
-            _, predicted = torch.max(outputs_avg.data, 1)
+            _, predicted = torch.max(outputs.data, 1)
             if target_type == 'ls':
                 ground_value = targets.data
             elif target_type == 'fa':
@@ -320,7 +338,10 @@ def test(epoch):
             del predicted
 
     Test_acc = cur_test_acc
-    if test_acc_map['best_acc'] <= Test_acc:
+    if test_acc_map['best_acc'] < Test_acc or (
+            test_acc_map['best_acc'] <= Test_acc and train_acc_map['best_acc'] <= Train_acc):
+        train_acc_map['best_acc'] = Train_acc
+        train_acc_map['best_acc_epoch'] = epoch
         test_acc_map['best_acc'] = Test_acc
         test_acc_map['best_acc_epoch'] = epoch
         print('Saving net to %s' % net_to_save_path)
@@ -329,23 +350,25 @@ def test(epoch):
         state = {'net': net.state_dict() if use_cuda else net,
                  'best_test_acc': test_acc_map['best_acc'],
                  'best_test_acc_epoch': test_acc_map['best_acc_epoch'],
+                 'best_train_acc': train_acc_map['best_acc'],
+                 'best_train_acc_epoch': train_acc_map['best_acc_epoch'],
                  'cur_epoch': epoch,
                  'correct_map': correct_map,
                  }
         torch.save(state, os.path.join(net_to_save_path, saved_model_name))
-    write_history('Test', cur_test_acc, private_test_loss / (batch_idx + 1), correct_map)
+    write_history('Test', epoch, cur_test_acc, private_test_loss / (batch_idx + 1), correct_map)
 
-        
-def write_history(train_or_test, acc, loss, predictions):
+
+def write_history(train_or_test, epoch, acc, loss, predictions):
     with open(os.path.join(net_to_save_path, history_file_name), "a+", encoding="utf-8") as history_file:
-        msg = train_or_test + " %.3f %.3f " % (acc, loss)
+        msg = train_or_test + " %d %.3f %.3f " % (epoch, acc, loss)
         if predictions:
             msg += str(predictions)
         msg += "\n"
         history_file.write(msg)
         history_file.flush()
-    
-    
+
+
 def save_over_flag():
     file_path = os.path.join(net_to_save_path, model_over_flag_name)
     with open(file_path, "w+", encoding="utf-8") as file:
@@ -375,6 +398,8 @@ if __name__ == "__main__":
                 state = {'net': net.state_dict() if use_cuda else net,
                      'best_test_acc': test_acc_map['best_acc'],
                      'best_test_acc_epoch': test_acc_map['best_acc_epoch'],
+                     'best_train_acc': train_acc_map['best_acc'],
+                     'best_train_acc_epoch': train_acc_map['best_acc_epoch'],
                      'cur_epoch': epoch,
                      }
                 torch.save(state, os.path.join(net_to_save_path, saved_temp_model_name))
