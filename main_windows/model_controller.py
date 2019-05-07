@@ -20,27 +20,27 @@ class ModelController():
     '''
     用于系统对于模型的控制，以及使用模型进行表情识别
     '''
-    def __init__(self, model_root_pre_path='', dataset='FER2013', tr_using_crop=False, *args, **kwargs):
+    def __init__(self, model_root_pre_path='', dataset='FER2013', tr_using_crop=True, *args, **kwargs):
         self.model_root_pre_path = model_root_pre_path
 
         self.model = ACCNN(7, pre_trained=True, dataset=dataset, root_pre_path=model_root_pre_path, fold=5, virtualize=True,
                            using_fl=False).to(DEVICE)
         self.model_fl = ACCNN(7, pre_trained=True, dataset=dataset, root_pre_path=model_root_pre_path, fold=5, virtualize=True,
                               using_fl=True).to(DEVICE)
-        self.use_crop_in_transforms = tr_using_crop
-        if tr_using_crop:
-            self.transform_test = transforms.Compose([
-                transforms.Resize(int(self.model.input_size)),
-                transforms.ToTensor(),
-                transforms.Normalize(IMG_MEAN, IMG_STD),
-            ])
-        else:
+        self.tr_using_crop = tr_using_crop
+        if self.tr_using_crop:
             crop_img_size = int(self.model.input_size * 1.2)
             self.transform_test = transforms.Compose([
                 transforms.Resize(crop_img_size),
                 transforms.TenCrop(self.model.input_size),
                 transforms.Lambda(lambda crops: torch.stack(
                     [transforms.Normalize(IMG_MEAN, IMG_STD)(transforms.ToTensor()(crop)) for crop in crops])),
+            ])
+        else:
+            self.transform_test = transforms.Compose([
+                transforms.Resize(int(self.model.input_size)),
+                transforms.ToTensor(),
+                transforms.Normalize(IMG_MEAN, IMG_STD),
             ])
 
     def fer_recognization(self, img_arr, weights_fl=0.5):
@@ -80,9 +80,8 @@ class ModelController():
             real_outputs = (1-weights_fl)*outputs_avg.data+weights_fl*outputs_fl_avg.data
             _, predicted = torch.max(real_outputs, 1)  # 此处 1 表示维度
             # print(predicted)
-            soft_max_rate = (outputs_avg.data, outputs_fl_avg.data, real_outputs.data)
-            print(soft_max_rate)
-        return face_box, self.model.output_map[predicted.item()], soft_max_rate
+            softmax_rate = (outputs_avg.data, outputs_fl_avg.data, real_outputs.data)
+        return face_box, self.model.output_map[predicted.item()], softmax_rate
 
     def clean_model_features_out(self):
         """

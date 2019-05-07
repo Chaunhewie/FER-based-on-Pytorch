@@ -1,6 +1,7 @@
 # coding=utf-8
 import os
 import sys
+import traceback
 from PyQt5.QtGui import QPixmap, QPainter, QPen
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QLabel, QFileDialog, QApplication, QComboBox
 from PyQt5.QtCore import Qt, QRect, QSize
@@ -14,8 +15,10 @@ ENABLED_DATASET = ['CK+', 'JAFFE', 'FER2013']
 
 class FERWindow(QMainWindow):
 
-    def __init__(self, root_pre_path='main_windows', *args, **kwargs):
+    def __init__(self, root_pre_path='main_windows', tr_using_crop=True, *args, **kwargs):
         super(FERWindow, self).__init__(*args, **kwargs)
+        self.tr_using_crop = tr_using_crop
+
         model_root_pre_path = ""
         css_root_pre_path = root_pre_path + "/"
         if len(root_pre_path) <= 0:
@@ -94,7 +97,8 @@ class FERWindow(QMainWindow):
         QApplication.processEvents()
 
         # 加载模型参数
-        self.init_model_thread = InitModelThread(model_root_pre_path, dataset="FER2013")  # 工作的线程
+        self.init_model_thread = InitModelThread(model_root_pre_path, dataset="FER2013",
+                                                 tr_using_crop=self.tr_using_crop)  # 工作的线程
         self.init_model_thread._signal.connect(self.init_load_model_slot)
         self.init_model_thread.start()
 
@@ -148,17 +152,21 @@ class FERWindow(QMainWindow):
         :param duration: 通过时间
         :return: 无
         """
-        face_box, emotion = res
-        # 输入打开的图片到模型中识别并将结果展示
-        self.show_emotion_label.setText("预测表情：" + emotion)
-        self.show_delay_label.setText("通过时间：" + str(duration) + "ms")
-        if DEBUG:
-            self.show_debug_label.setText("人脸框：" + str(face_box) + " 图像大小：" + str(img_origin.size()))
+        try:
+            face_box, emotion, softmax_rate = res
+            print("slot:", res)
+            # 输入打开的图片到模型中识别并将结果展示
+            self.show_emotion_label.setText("预测表情：" + emotion)
+            self.show_delay_label.setText("通过时间：" + str(duration) + "ms")
+            if DEBUG:
+                self.show_debug_label.setText("人脸框：" + str(face_box) + " 图像大小：" + str(img_origin.size()))
 
-        # 绘制人脸定位图像
-        img_with_face_box = self.draw_img_with_face_box(img_origin.copy(), face_box)
-        self.show_res_label.setText("")
-        self.show_res_label.setPixmap(img_with_face_box)
+            # 绘制人脸定位图像
+            img_with_face_box = self.draw_img_with_face_box(img_origin.copy(), face_box)
+            self.show_res_label.setText("")
+            self.show_res_label.setPixmap(img_with_face_box)
+        except:
+            traceback.print_exc()
 
     def draw_img_with_face_box(self, img, face_box):
         """
@@ -186,7 +194,8 @@ class FERWindow(QMainWindow):
         """
         self.show_pic_label.setText("正在初始化...")
         self.show_res_label.setText("正在初始化...")
-        self.init_model_thread = InitModelThread(self.model_root_pre_path, dataset=dataset)  # 工作的线程
+        self.init_model_thread = InitModelThread(self.model_root_pre_path, dataset=dataset,
+                                                 tr_using_crop=self.tr_using_crop)  # 工作的线程
         self.init_model_thread._signal.connect(self.init_load_model_slot)
         self.init_model_thread.start()
 
