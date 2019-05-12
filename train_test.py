@@ -32,8 +32,8 @@ enabled_datasets = ["JAFFE", "CK+", "FER2013"]
 parser = argparse.ArgumentParser(description='PyTorch CNN Training With JAFFE')
 
 # 模型选择
-parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
-# parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
+# parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture')
+parser.add_argument('--model', type=str, default='ACCNN', help='CNN architecture')
 # parser.add_argument('--model', default='AlexNet', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG11', type=str, help='CNN architecture')
 # parser.add_argument('--model', default='VGG13', type=str, help='CNN architecture')
@@ -46,12 +46,12 @@ parser.add_argument('--model', type=str, default='ACNN', help='CNN architecture'
 # parser.add_argument('--model', default='ResNet152', type=str, help='CNN architecture')
 
 # 数据集选择，以及对于数据预处理，是否使用TenCrop进行数据增强
-parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
-parser.add_argument('--tr_using_crop', default=True, type=bool, help='whether using TenCrop in data transform')
+# parser.add_argument('--dataset', default='JAFFE', type=str, help='dataset')
+# parser.add_argument('--tr_using_crop', default=True, type=bool, help='whether using TenCrop in data transform')
 # parser.add_argument('--dataset', default='CK+', type=str, help='dataset')
 # parser.add_argument('--tr_using_crop', default=False, type=bool, help='whether using TenCrop in data transform')
-# parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
-# parser.add_argument('--tr_using_crop', default=False, type=bool, help='whether using TenCrop in data transform')
+parser.add_argument('--dataset', default='FER2013', type=str, help='dataset')
+parser.add_argument('--tr_using_crop', default=False, type=bool, help='whether using TenCrop in data transform')
 
 # Other Parameters
 # 是否使用面部标记点进行训练

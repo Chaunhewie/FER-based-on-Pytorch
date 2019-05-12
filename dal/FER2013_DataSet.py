@@ -50,6 +50,11 @@ class FER2013(data.Dataset):
         else:
             assert("target_type should be 'fa' or 'ls', but input is %s" % (target_type))
         self.img_data_file_path = os.path.join(img_dir_pre_path, 'fer2013.csv')
+        self.img_no_fl_folder_path = img_dir_pre_path+"_no_fl"
+        self.save_img_no_fl = False  # 是否存储未识别出人脸的图片，默认存于 $(img_dir_pre_path)_no_fl 文件夹
+        if self.save_img_no_fl:
+            if not os.path.exists(self.img_no_fl_folder_path):
+                os.mkdir(self.img_no_fl_folder_path)
         self.transform = transform
         self.is_train = is_train  # train set or test set
         self.private_test = private_test
@@ -73,6 +78,9 @@ class FER2013(data.Dataset):
                     img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
                     if face_box is None or face_landmarks is None:
                         self.train_data_num -= 1
+                        if self.save_img_no_fl:
+                            img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48))).convert("L")
+                            img.save(os.path.join(self.img_no_fl_folder_path, str(self.train_data_num + 1)+"_train.png"))
                         continue
                     if using_fl:
                         landmarks_img = get_img_with_landmarks(img, face_landmarks)
@@ -87,6 +95,9 @@ class FER2013(data.Dataset):
                     img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
                     if face_box is None or face_landmarks is None:
                         self.test_data_num -= 1
+                        if self.save_img_no_fl:
+                            img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48))).convert("L")
+                            img.save(os.path.join(self.img_no_fl_folder_path, str(self.test_data_num + 1)+"_test.png"))
                         continue
                     if using_fl:
                         landmarks_img = get_img_with_landmarks(img, face_landmarks)
@@ -100,7 +111,10 @@ class FER2013(data.Dataset):
                     img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
                     img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
                     if face_box is None or face_landmarks is None:
-                        self.train_data_num -= 1
+                        self.test_data_num -= 1
+                        if self.save_img_no_fl:
+                            img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48))).convert("L")
+                            img.save(os.path.join(self.img_no_fl_folder_path, str(self.test_data_num + 1)+"_test.png"))
                         continue
                     if using_fl:
                         landmarks_img = get_img_with_landmarks(img, face_landmarks)

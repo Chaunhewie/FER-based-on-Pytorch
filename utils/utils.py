@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import threading
 
 plt_Lock = threading.Lock()
-
 Total_Bar_Length = 30
+
 
 def progress_bar(cur, tot, msg):
     s = "\r["
