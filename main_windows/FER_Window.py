@@ -4,10 +4,10 @@ import sys
 import traceback
 from PyQt5.QtGui import QPixmap, QPainter, QPen
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QLabel, QFileDialog, QApplication, QComboBox
-from PyQt5.QtCore import Qt, QRect, QSize
+from PyQt5.QtCore import Qt, QRect, QSize, pyqtSignal
 
 from main_windows.css import *
-from main_windows.worker_threads import InitModelThread, FERWorkerThread, VirtualizeWorkerThread
+from main_windows.worker_threads import InitModelThread, FERWorkerThread, VirtualizeWorkerThread, VirtualizeBarDistributeThread
 
 DEBUG = False
 ENABLED_DATASET = ['CK+', 'JAFFE', 'FER2013']
@@ -30,6 +30,7 @@ class FERWindow(QMainWindow):
         self.root_pre_path = root_pre_path
         self.model_root_pre_path = model_root_pre_path
         self.css_root_pre_path = css_root_pre_path
+        self.img_save_dir = os.path.join(self.model_root_pre_path, "Saved_Virtualizations")
 
         # 窗口大小
         self.resize(1950, 980)
@@ -121,45 +122,57 @@ class FERWindow(QMainWindow):
             label.setStyleSheet(SHOW_RATE_REAL_LABEL_CSS)
             self.softmax_rate_real_labels.append(label)
         # 展示模型的中间输出可视化
-        self.virtualizations_name_labels = []
-        self.virtualizations_labels = []
-        self.virtualizations_fl_name_labels = []
-        self.virtualizations_fl_labels = []
-        self.virtualizations_x_positions = [450, 575, 700, 825, 950, 1075, 1200, 1325, 1450, 1575]
+        self.vir_name_labels = []
+        self.vir_labels = []
+        self.vir_fl_name_labels = []
+        self.vir_fl_labels = []
+        self.vir_x_positions = [450, 575, 700, 825, 950, 1075, 1200, 1325, 1450, 1575]
         for i in range(self.n_features_conv):
             label = QLabel(self)
             label.setText("conv"+str(i+1))
             label.setFixedSize(100, 20)
-            label.move(self.virtualizations_x_positions[i], 30)
+            label.move(self.vir_x_positions[i], 30)
             label.setStyleSheet(SHOW_RATE_LABEL_CSS)
-            self.virtualizations_name_labels.append(label)
+            self.vir_name_labels.append(label)
             label = QLabel(self)
             label.setText("可视化图片")
             label.setFixedSize(100, 100)
-            label.move(self.virtualizations_x_positions[i], 50)
+            label.move(self.vir_x_positions[i], 50)
             label.setStyleSheet(SHOW_RATE_LABEL_CSS)
-            self.virtualizations_labels.append(label)
+            self.vir_labels.append(label)
             label = QLabel(self)
             label.setText("conv"+str(i+1))
             label.setFixedSize(100, 20)
-            label.move(self.virtualizations_x_positions[i], 820)
+            label.move(self.vir_x_positions[i], 820)
             label.setStyleSheet(SHOW_RATE_FL_LABEL_CSS)
-            self.virtualizations_fl_name_labels.append(label)
+            self.vir_fl_name_labels.append(label)
             label = QLabel(self)
             label.setText("可视化图片")
             label.setFixedSize(100, 100)
-            label.move(self.virtualizations_x_positions[i], 840)
+            label.move(self.vir_x_positions[i], 840)
             label.setStyleSheet(SHOW_RATE_FL_LABEL_CSS)
-            self.virtualizations_fl_labels.append(label)
+            self.vir_fl_labels.append(label)
+        # 展示输出结果的条形图
+        self.vir_softmax_rate_label = QLabel(self)
+        self.vir_softmax_rate_label.setText("结果")
+        self.vir_softmax_rate_label.setFixedSize(150, 150)
+        self.vir_softmax_rate_label.move(1575, 10)
+        self.vir_softmax_rate_label.setStyleSheet(SHOW_RATE_LABEL_CSS)
+        self.vir_fl_softmax_rate_label = QLabel(self)
+        self.vir_fl_softmax_rate_label.setText("结果")
+        self.vir_fl_softmax_rate_label.setFixedSize(150, 150)
+        self.vir_fl_softmax_rate_label.move(1575, 820)
+        self.vir_fl_softmax_rate_label.setStyleSheet(SHOW_RATE_FL_LABEL_CSS)
         # 其他的变量声明初始化
-        self.model_controller = None
         self.img_model_struct_path = os.path.join(self.root_pre_path, "Resources", "ACCNN_model_structer.png")
-        self.fer_worker_thread = None
-        self.virtualize_worker_threads = []
-        self.virtualize_fl_worker_threads = []
+        self.model_controller = None  # 用于控制模型操作
+        self.fer_worker_thread = None  # 用于人脸识别
+        self.vir_worker_threads = []  # 用于绘制图片识别层的中间层输出
+        self.vir_fl_worker_threads = []  # 用于绘制关键标记点识别层的中间层输出
         for i in range(self.n_features_conv):
-            self.virtualize_worker_threads.append(None)
-            self.virtualize_fl_worker_threads.append(None)
+            self.vir_worker_threads.append(None)
+            self.vir_fl_worker_threads.append(None)
+        self.vir_bar_distribute_thread, self.vir_fl_bar_distribute_thread = None, None  # 用于绘制两层输出的各类分布的条形图
 
         self.setWindowTitle("My FER Program")
         self.showMaximized()
@@ -197,6 +210,8 @@ class FERWindow(QMainWindow):
         打开图片，并输入模型进行识别，界面更新处理结果
         :return:
         """
+        # 停止正在工作的可视化线程
+        self.stop_fer_vir_threads()
         # 打开并展示一张图片
         img_path, _ = QFileDialog.getOpenFileName(None, "打开图片", "", "*.png;*.jpg;;All Files(*)")
         if len(img_path) <= 0:
@@ -210,10 +225,14 @@ class FERWindow(QMainWindow):
         self.show_pic_label.setPixmap(img_origin)
         self.show_res_label.setText("识别中...")
         for i in range(self.n_features_conv):
-            self.virtualizations_labels[i].clear()
-            self.virtualizations_labels[i].setText("可视化图片")
-            self.virtualizations_fl_labels[i].clear()
-            self.virtualizations_fl_labels[i].setText("可视化图片")
+            self.vir_labels[i].clear()
+            self.vir_labels[i].setText("可视化图片")
+            self.vir_fl_labels[i].clear()
+            self.vir_fl_labels[i].setText("可视化图片")
+        self.vir_softmax_rate_label.clear()
+        self.vir_softmax_rate_label.setText("结果")
+        self.vir_fl_softmax_rate_label.clear()
+        self.vir_fl_softmax_rate_label.setText("结果")
         QApplication.processEvents()
 
         # 调用人脸识别的线程进行工作
@@ -233,8 +252,8 @@ class FERWindow(QMainWindow):
         if vir_index != self.vir_index:
             return
         try:
-            face_box, emotion, softmax_rate, virtualizations = res
-            # print(len(virtualizations), len(virtualizations[0]), len(virtualizations[1]))
+            face_box, emotion, softmax_rates, vir = res
+            # print(len(vir), len(vir[0]), len(vir[1]))
             # 输入打开的图片到模型中识别并将结果展示
             self.show_emotion_label.setText("预测表情：" + emotion)
             self.show_delay_label.setText("通过时间：" + str(duration) + "ms")
@@ -249,46 +268,67 @@ class FERWindow(QMainWindow):
 
             # 更新神经元节点的QLabel展示值
             for i in range(self.n_classes):
-                self.softmax_rate_labels[i].setText("%.2e" % softmax_rate[0][i])
-                self.softmax_rate_fl_labels[i].setText("%.2e" % softmax_rate[1][i])
-                self.softmax_rate_real_labels[i].setText("%.2e" % softmax_rate[2][i])
+                self.softmax_rate_labels[i].setText("%.2e" % softmax_rates[0][i])
+                self.softmax_rate_fl_labels[i].setText("%.2e" % softmax_rates[1][i])
+                self.softmax_rate_real_labels[i].setText("%.2e" % softmax_rates[2][i])
                 QApplication.processEvents()
 
             # 更新可视化中间层图像
             for i in range(self.n_features_conv):
-                images, images_fl = virtualizations[0][i], virtualizations[1][i]
-                img_save_dir = os.path.join(self.model_root_pre_path, "Saved_Virtualizations")
+                images, images_fl = vir[0][i], vir[1][i]
 
-                self.virtualize_worker_threads[i] = VirtualizeWorkerThread(images, "ACCNN_" + self.dataset,
-                                                                           img_save_dir, i, False, vir_index)
-                self.virtualize_worker_threads[i].signal.connect(self.virtualize_worker_thread_slot)
-                self.virtualize_worker_threads[i].start()
+                self.vir_worker_threads[i] = VirtualizeWorkerThread(images, "ACCNN_" + self.dataset,
+                                                                    self.img_save_dir, i, False, vir_index)
+                self.vir_worker_threads[i].signal.connect(self.vir_worker_thread_slot)
+                self.vir_worker_threads[i].start()
 
-                self.virtualize_fl_worker_threads[i] = VirtualizeWorkerThread(images_fl, "ACCNN_fl_" + self.dataset,
-                                                                              img_save_dir, i, True, vir_index)
-                self.virtualize_fl_worker_threads[i].signal.connect(self.virtualize_worker_thread_slot)
-                self.virtualize_fl_worker_threads[i].start()
+                self.vir_fl_worker_threads[i] = VirtualizeWorkerThread(images_fl, "ACCNN_" + self.dataset,
+                                                                       self.img_save_dir, i, True, vir_index)
+                self.vir_fl_worker_threads[i].signal.connect(self.vir_worker_thread_slot)
+                self.vir_fl_worker_threads[i].start()
+
+            # 绘制条形图
+            self.vir_bar_distribute_thread = VirtualizeBarDistributeThread(self.model_controller.model.output_map,
+                                softmax_rates[0], "ACCNN_" + self.dataset, self.img_save_dir, False, vir_index)
+            self.vir_bar_distribute_thread.signal.connect(self.vir_bar_worker_thread_slot)
+            self.vir_bar_distribute_thread.start()
+
+            self.vir_fl_bar_distribute_thread = VirtualizeBarDistributeThread(self.model_controller.model.output_map,
+                                softmax_rates[1], "ACCNN_" + self.dataset, self.img_save_dir, True, vir_index)
+            self.vir_fl_bar_distribute_thread.signal.connect(self.vir_bar_worker_thread_slot)
+            self.vir_fl_bar_distribute_thread.start()
         except:
             traceback.print_exc()
 
-    def virtualize_worker_thread_slot(self, img_saved_path, i, is_fl, vir_index):
+    def vir_worker_thread_slot(self, img_saved_path, i, is_fl, vir_index):
         if vir_index != self.vir_index:
             return
         try:
             if is_fl:
-                vir_label = self.virtualizations_fl_labels[i]
+                self.set_img_to_label(QPixmap(img_saved_path), self.vir_fl_labels[i])
             else:
-                vir_label = self.virtualizations_labels[i]
-
-            img = QPixmap(img_saved_path)
-            if img.width() > img.height():
-                img = img.scaledToWidth(self.virtualizations_labels[i].width())
-            else:
-                img = img.scaledToHeight(self.virtualizations_labels[i].height())
-            vir_label.setPixmap(img)
-            QApplication.processEvents()
+                self.set_img_to_label(QPixmap(img_saved_path), self.vir_labels[i])
         except:
             traceback.print_exc()
+
+    def vir_bar_worker_thread_slot(self, img_saved_path, is_fl, vir_index):
+        if vir_index != self.vir_index:
+            return
+        try:
+            if is_fl:
+                self.set_img_to_label(QPixmap(img_saved_path), self.vir_fl_softmax_rate_label)
+            else:
+                self.set_img_to_label(QPixmap(img_saved_path), self.vir_softmax_rate_label)
+        except:
+            traceback.print_exc()
+
+    def set_img_to_label(self, img, vir_label):
+        if img.width() > img.height():
+            img = img.scaledToWidth(vir_label.width())
+        else:
+            img = img.scaledToHeight(vir_label.height())
+        vir_label.setPixmap(img)
+        QApplication.processEvents()
 
     def draw_img_with_face_box(self, img, face_box):
         """
@@ -297,7 +337,6 @@ class FERWindow(QMainWindow):
         :param face_box: (top, right, bottom, left) 脸部框图像素点的位置
         :return: QPixmap
         """
-        # h, w = img.height(), img.width()
         top, right, bottom, left = face_box
         painter = QPainter(img)
         pen = QPen(Qt.blue, 5)
@@ -306,7 +345,6 @@ class FERWindow(QMainWindow):
         painter.drawRect(QRect(left, top, right-left, bottom-top))  # x, y, width, height
         painter.end()
         return img
-
 
     def change_dataset(self, dataset):
         """
@@ -321,6 +359,26 @@ class FERWindow(QMainWindow):
                                                  tr_using_crop=self.tr_using_crop)  # 工作的线程
         self.init_model_thread.signal.connect(self.init_load_model_slot)
         self.init_model_thread.start()
+
+    def stop_fer_vir_threads(self):
+        num = 0
+        if self.fer_worker_thread and self.fer_worker_thread.isRunning():
+            num += 1
+            self.fer_worker_thread.stop()
+        for i in range(self.n_features_conv):
+            if self.vir_worker_threads[i] and self.vir_worker_threads[i].isRunning():
+                num += 1
+                self.vir_worker_threads[i].stop()
+            if self.vir_fl_worker_threads[i] and self.vir_worker_threads[i].isRunning():
+                num += 1
+                self.vir_worker_threads[i].stop()
+        if self.vir_bar_distribute_thread and self.vir_bar_distribute_thread.isRunning():
+            num += 1
+            self.vir_bar_distribute_thread.stop()
+        if self.vir_fl_bar_distribute_thread and self.vir_fl_bar_distribute_thread.isRunning():
+            num += 1
+            self.vir_fl_bar_distribute_thread.stop()
+        print("Stopped thread num : %d" % num)
 
 
 if __name__ == '__main__':

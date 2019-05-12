@@ -102,6 +102,23 @@ def build_img_of_features(image, blank_size=2):
     return Image.fromarray(img_arr)
 
 
+def build_and_draw_bar_img(output_map, y, img_name_pre="", img_save_dir="Saved_Virtualizations",
+                           bar_color=(118 / 255, 141 / 255, 50 / 255, 200 / 255)):
+    """
+    根据x和y进行条形图的绘制
+    :param output_map: index对应到类别的map
+    :param y: 每个x的具体值
+    :param img_name_pre: 存储的条形图的 img 名称前缀
+    :param img_save_dir: 存储的目录
+    :return: 保存的img路径
+    """
+    # print(softmax_rate)
+    img_save_name = img_name_pre + "_bar_img"
+    img_save_path = os.path.join(img_save_dir, img_save_name)
+    utils.draw_bar_img(output_map, y, img_save_path, plt_show=False, bar_color=bar_color)
+    return img_save_path
+
+
 def draw_weights_of_net(net, img_name_pre="", blank_size=2, img_save_dir="Saved_Virtualizations"):
     """
     绘制网络所有的特征层的内核参数情况

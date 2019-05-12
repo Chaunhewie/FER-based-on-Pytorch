@@ -61,6 +61,40 @@ def draw_img(img, save_path="", plt_show=True, log_enabled=True):
             plt.close('all')
 
 
+def draw_bar_img(output_map, y, save_path="", plt_show=True, log_enabled=True,
+                 bar_color=(118 / 255, 141 / 255, 50 / 255, 200 / 255)):
+    """
+    绘制条形图像
+    :param img: img
+    :return: None
+    """
+    emotions = []
+    x = list(output_map.keys())
+    x.sort()
+    for index in x:
+        emotions.append(output_map[index])
+
+    global plt_Lock
+    with plt_Lock:
+        fig = plt.figure(figsize=(20, 20))  # figsize: width, height in inches
+        ax = fig.add_subplot(111)
+        ax.set_ylabel(u"概率", fontsize=25)
+        ax.set_title(u"预测类别概率", fontsize=48)
+        ax.bar(range(len(emotions)), y, width=0.8, align="center", tick_label=emotions, color=bar_color)
+        for tick in ax.xaxis.get_major_ticks():
+            tick.label.set_fontsize(25)
+        for tick in ax.yaxis.get_major_ticks():
+            tick.label.set_fontsize(15)
+        if len(save_path) > 0:
+            plt.savefig(save_path)
+            if log_enabled:
+                print("saved fig to %s" % save_path)
+        if plt_show:
+            plt.show()
+        else:
+            plt.close('all')
+
+
 def num_of_parameters_of_net(net):
     num_of_parameters = 0
     for name, parameters in net.named_parameters():
@@ -78,4 +112,3 @@ def save_internal_img(path, img, img_name):
     if not os.path.exists(path):
         os.makedirs(path)
     img.save(os.path.join(path, img_name))
-
