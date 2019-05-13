@@ -74,13 +74,13 @@ class FER2013(data.Dataset):
             if line[2] == 'Training':
                 self.train_data_num += 1
                 if is_train:
-                    img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    img_origin = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
+                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img_origin)
                     if face_box is None or face_landmarks is None:
-                        self.train_data_num -= 1
                         if self.save_img_no_fl:
-                            img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48))).convert("L")
-                            img.save(os.path.join(self.img_no_fl_folder_path, str(self.train_data_num + 1)+"_train.png"))
+                            img_origin = img_origin.convert("L")
+                            img_origin.save(os.path.join(self.img_no_fl_folder_path, str(self.train_data_num)+"_train.png"))
+                        self.train_data_num -= 1
                         continue
                     if using_fl:
                         landmarks_img = get_img_with_landmarks(img, face_landmarks)
@@ -91,13 +91,13 @@ class FER2013(data.Dataset):
             elif private_test and line[2] == 'PrivateTest':
                 self.test_data_num += 1
                 if not is_train:
-                    img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    img_origin = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
+                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img_origin)
                     if face_box is None or face_landmarks is None:
-                        self.test_data_num -= 1
                         if self.save_img_no_fl:
-                            img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48))).convert("L")
-                            img.save(os.path.join(self.img_no_fl_folder_path, str(self.test_data_num + 1)+"_test.png"))
+                            img_origin = img_origin.convert("L")
+                            img_origin.save(os.path.join(self.img_no_fl_folder_path, str(self.test_data_num )+"_test.png"))
+                        self.test_data_num -= 1
                         continue
                     if using_fl:
                         landmarks_img = get_img_with_landmarks(img, face_landmarks)
@@ -108,13 +108,13 @@ class FER2013(data.Dataset):
             elif not private_test and line[2] == 'PublicTest':
                 self.test_data_num += 1
                 if not is_train:
-                    img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
-                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
+                    img_origin = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48)))
+                    img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img_origin)
                     if face_box is None or face_landmarks is None:
-                        self.test_data_num -= 1
                         if self.save_img_no_fl:
-                            img = Image.fromarray(np.reshape(np.array(line[1].split(" "), dtype=float), (48, 48))).convert("L")
-                            img.save(os.path.join(self.img_no_fl_folder_path, str(self.test_data_num + 1)+"_test.png"))
+                            img_origin = img_origin.convert("L")
+                            img_origin.save(os.path.join(self.img_no_fl_folder_path, str(self.test_data_num)+"_test.png"))
+                        self.test_data_num -= 1
                         continue
                     if using_fl:
                         landmarks_img = get_img_with_landmarks(img, face_landmarks)
