@@ -67,13 +67,13 @@ class FERWindow(QMainWindow):
         # 展示表情的label
         self.show_emotion_label = QLabel(self)
         self.show_emotion_label.setText("")
-        self.show_emotion_label.setFixedSize(350, 20)
+        self.show_emotion_label.setFixedSize(400, 20)
         self.show_emotion_label.move(20, 510)
         self.show_emotion_label.setStyleSheet(SHOW_INFO_LABEL_CSS)
         # 展示时间的label
         self.show_delay_label = QLabel(self)
         self.show_delay_label.setText("")
-        self.show_delay_label.setFixedSize(350, 20)
+        self.show_delay_label.setFixedSize(400, 20)
         self.show_delay_label.move(20, 530)
         self.show_delay_label.setStyleSheet(SHOW_INFO_LABEL_CSS)
         # 展示debug信息的label
@@ -252,11 +252,12 @@ class FERWindow(QMainWindow):
         if vir_index != self.vir_index:
             return
         try:
-            face_box, emotion, softmax_rates, vir = res
+            face_box, emotion, softmax_rates, vir, (pre_exec_data_duration, predict_duration) = res
             # print(len(vir), len(vir[0]), len(vir[1]))
             # 输入打开的图片到模型中识别并将结果展示
             self.show_emotion_label.setText("预测表情：" + emotion)
-            self.show_delay_label.setText("通过时间：" + str(duration) + "ms")
+            self.show_delay_label.setText("通过时间：%sms（%sms;%sms）" % (str(duration),
+                                            str(pre_exec_data_duration), str(predict_duration)))
             if DEBUG:
                 self.show_debug_label.setText("人脸框：" + str(face_box) + " 图像大小：" + str(img_origin.size()))
 

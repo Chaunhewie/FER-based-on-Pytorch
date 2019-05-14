@@ -10,7 +10,7 @@ SHOW_PIC_LABEL_CSS = "QLabel{background:rgba(230,230,230,100)}" \
                      "QLabel{font-family:宋体;}"
 
 SHOW_INFO_LABEL_CSS = "QLabel{color:rgba(10,10,10,200);}" \
-                      "QLabel{font-size:20px;}" \
+                      "QLabel{font-size:16px;}" \
                       "QLabel{font-weight:bold;}" \
                       "QLabel{font-family:宋体;}"
 

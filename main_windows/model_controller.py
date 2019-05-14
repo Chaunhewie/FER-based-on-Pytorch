@@ -1,5 +1,6 @@
 # coding=utf-8
 import sys
+import time
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -44,7 +45,7 @@ class ModelController():
                 transforms.Normalize(IMG_MEAN, IMG_STD),
             ])
 
-    def fer_recognization(self, img_arr, weights_fl=0.5):
+    def fer_recognization(self, img_arr, weights_fl=0.4):
         """
         人脸识别
         :param img_arr: img的numpy array对象
@@ -53,13 +54,15 @@ class ModelController():
         :return:
         """
         # 模型的输入准备
+        start_time = time.time()
         img = Image.fromarray(img_arr).convert("L")
         img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
         landmarks_img = get_img_with_landmarks(img, face_landmarks)
         inputs = self.transform_test(img)
         inputs_fl = self.transform_test(landmarks_img)
         self.clean_model_features_out()
-
+        pre_exec_data_end_time = time.time()
+        pre_exec_data_duration = round((pre_exec_data_end_time - start_time) * 1000, 2)
         # 模型输入
         outputs, vir = self.model_test(self.model, inputs)
         outputs_fl, vir_fl = self.model_test(self.model_fl, inputs_fl)
@@ -67,10 +70,13 @@ class ModelController():
         # 对输出进行处理
         real_outputs = (1 - weights_fl) * outputs.data + weights_fl * outputs_fl.data
         _, predicted = torch.max(real_outputs, 1)  # 此处 1 表示维度
+        predict_end_time = time.time()
+        predict_duration = round((predict_end_time - pre_exec_data_end_time) * 1000, 2)
         # print(predicted)
         softmax_rate = (
-            np.array(outputs.data[0]), np.array(outputs_fl.data[0]), np.array(real_outputs.data[0]))
-        return face_box, self.model.output_map[predicted.item()], softmax_rate, [vir, vir_fl]
+            np.array(outputs.cpu().data[0]), np.array(outputs_fl.cpu().data[0]), np.array(real_outputs.cpu().data[0]))
+        return (face_box, self.model.output_map[predicted.item()], softmax_rate, [vir, vir_fl], [pre_exec_data_duration,
+                                                                                                 predict_duration])
 
     def model_test(self, model, inputs):
         bs = 1
