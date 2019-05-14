@@ -31,6 +31,7 @@ class InitModelThread(QThread):
                 self.signal.emit(model_controller)  # 注意这里与_signal = pyqtSignal(str)中的类型相同
         except:
             traceback.print_exc()
+        self._isRunning = False
 
     def stop(self):
         self._isRunning = False
@@ -72,6 +73,7 @@ class FERWorkerThread(QThread):
                 self.signal.emit(self.img_origin, res, duration, self.vir_index)
         except:
             traceback.print_exc()
+        self._isRunning = False
 
     def stop(self):
         self._isRunning = False
@@ -103,13 +105,17 @@ class VirtualizeWorkerThread(QThread):
     def run(self):
         self._isRunning = True
         try:
+            print("VirtualizeWorkerThread Begin: index: %d conv_index: %d, is_fl: %d" % (self.vir_index, self.index+1, self.is_fl))
             img_saved_path = build_and_draw_img_of_features(self.images, self.index, img_name_pre=self.img_name_pre,
                                                             img_save_dir=self.img_save_dir)
             if self._isRunning:
                 print("VirtualizeWorkerThread Over: index: %d conv_index: %d, is_fl: %d" % (self.vir_index, self.index+1, self.is_fl))
                 self.signal.emit(img_saved_path, self.index, self.is_fl, self.vir_index)
+            else:
+                print("VirtualizeWorkerThread Off and Over: index: %d conv_index: %d, is_fl: %d" % (self.vir_index, self.index+1, self.is_fl))
         except:
             traceback.print_exc()
+        self._isRunning = False
 
     def stop(self):
         self._isRunning = False
@@ -152,6 +158,7 @@ class VirtualizeBarDistributeThread(QThread):
                 self.signal.emit(img_saved_path, self.is_fl, self.vir_index)
         except:
             traceback.print_exc()
+        self._isRunning = False
 
     def stop(self):
         self._isRunning = False

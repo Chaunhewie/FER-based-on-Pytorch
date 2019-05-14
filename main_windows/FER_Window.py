@@ -211,7 +211,7 @@ class FERWindow(QMainWindow):
         :return:
         """
         # 停止正在工作的可视化线程
-        self.stop_fer_vir_threads()
+        # self.stop_fer_vir_threads()
         # 打开并展示一张图片
         img_path, _ = QFileDialog.getOpenFileName(None, "打开图片", "", "*.png;*.jpg;;All Files(*)")
         if len(img_path) <= 0:

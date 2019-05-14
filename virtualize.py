@@ -1,5 +1,6 @@
 # coding=utf-8
 import os
+import time
 import torch
 from PIL import Image
 from math import ceil
@@ -50,7 +51,7 @@ def draw_features_of_net(net, test_inputs, img_name_pre="", img_save_dir="Saved_
 def build_and_draw_img_of_features(images, feature_index, type="", img_name_pre="", img_save_dir="Saved_Virtualizations"):
     """
     构建并绘制特征层的图像
-    :param images: 钩子函数获取的特征层
+    :param images: 钩子函数获取的特征层，[tuple, tuple, ..., tuple]
     :param feature_index: 特征序号
     :param type: 特征类型('in'表示特征层的输入，'out'表示特征层的输出，'end'表示网络最终特征输出)
     :param img_name_pre: 存储的特征层 img 名称前缀
@@ -62,11 +63,19 @@ def build_and_draw_img_of_features(images, feature_index, type="", img_name_pre=
     for i in range(len(images)):
         # print("-----------img %s------------" % str(i))
         image = images[i]
+        start_build_time = time.time()
         img = build_img_of_features(image)
+        end_build_time = time.time()
+        build_duration = round((end_build_time-start_build_time) * 1000, 2)
+        print("build_duration:", build_duration)
         if not os.path.exists(img_save_dir):
             os.mkdir(img_save_dir)
         img_save_path = os.path.join(img_save_dir, img_save_name + "_of_img_" + str(i))
+        start_draw_time = time.time()
         utils.draw_img(img, img_save_path, plt_show=False)
+        end_draw_time = time.time()
+        draw_duration = round((end_draw_time-start_draw_time) * 1000, 2)
+        print("draw_duration:", draw_duration)
         break
     return img_save_path
 
@@ -94,10 +103,13 @@ def build_img_of_features(image, blank_size=2):
     for j in range(len(image)):
         start_row_index = (j // col_num) * (blank_size + image_shape[1])
         start_col_index = (j % col_num) * (blank_size + image_shape[2])
-        for row_pixel_index in range(image_shape[1]):
-            for col_pixel_index in range(image_shape[2]):
-                img_arr[start_row_index + row_pixel_index][start_col_index + col_pixel_index] = \
-                    image[j][row_pixel_index][col_pixel_index]
+        image_np = image[j].numpy()
+        img_arr[start_row_index:start_row_index+image_np.shape[0], start_col_index:start_col_index+image_np.shape[1]] = image_np
+        # 上面这句相当于下面这个循环，但是下面的循环相比上面要速度慢很多
+        # for row_pixel_index in range(image_shape[1]):
+        #     for col_pixel_index in range(image_shape[2]):
+        #         img_arr[start_row_index + row_pixel_index][start_col_index + col_pixel_index] = \
+        #             image[j][row_pixel_index][col_pixel_index]
 
     return Image.fromarray(img_arr)
 
