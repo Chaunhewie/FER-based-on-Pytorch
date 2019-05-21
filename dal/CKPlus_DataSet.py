@@ -29,18 +29,20 @@ class CKPlus(data.Dataset):
         is_train (bool, optional): If True, creates dataset from training set, otherwise creates from test set.
         transform (callable, optional): A function/transform that  takes in an PIL image and returns a transformed version.
                                         E.g, ``transforms.RandomCrop``
-        target_type(str, optional): Using for target type: "fa" for "float array", "ls" for "long single"
+        target_type(str, optional): Using for target type: "fa" for "float array", "ls" for "long single".
                                     E.g, ``MSELoss will use fa``; ``CrossEntropyLoss will use ls``
         k_folder (int, optional): Using for split the dataset as train set and test set,
-                                  and len(test set):len(train set) = 1:(10-k_folder)
-        img_dir_pre_path (str, optional): The relative path of the data dictionary and main file
+                                  and len(test set):len(train set) = 1:(10-k_folder).
+        img_dir_pre_path (str, optional): The relative path of the data dictionary and main file.
+        using_fl (bool, optional): Whether using face_landmarks to crop original img.
 
         there are 981(anger:135 contempt:54 disgust:177 fear:75 happy:207 sadness:84 surprise:249) images in data with 123 people
         we choose images of 111 people, whose name is in self.train_people_names, for training
         we choose images of 12 person, whose name is in self.test_people_names, for testing
     """
 
-    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/CK+", using_fl=False):
+    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/CK+",
+                 using_fl=False):
         if target_type == "fa":
             self.classes_map = {'anger': np.array([1., 0., 0., 0., 0., 0., 0.], dtype=float),
                                 'contempt': np.array([0., 1., 0., 0., 0., 0., 0.], dtype=float),
