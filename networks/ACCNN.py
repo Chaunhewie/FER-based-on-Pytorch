@@ -34,7 +34,7 @@ class ACCNN(nn.Module):
                  using_fl=False):
         # nn.Module子类的函数必须在构造函数中执行父类的构造函数
         super(ACCNN, self).__init__()
-        self.input_size = 96
+        self.input_size = 96  # 输入96*96大小的图片
         # 4 # 72
         self.features = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=5, stride=1, dilation=2),  # 64, 88, 88
