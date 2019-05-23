@@ -29,7 +29,7 @@ class RAF(data.Dataset):
             Test: Surprise:1619, Fear:355, Disgust:877, Happiness:5957, Sadness:2460, Anger:867 and Neutral:3204
     """
 
-    def __init__(self, is_train=True, transform=None, target_type="fa", img_dir_pre_path="data/RAF", using_fl=False):
+    def __init__(self, is_train=True, transform=None, target_type="ls", img_dir_pre_path="data/RAF", using_fl=False):
         name = 'CKPlus'
         if is_train:
             name += "_" + 'train'
@@ -67,7 +67,7 @@ class RAF(data.Dataset):
             self.img_aligned_data_dir_path = os.path.join(img_dir_pre_path, 'Image', 'aligned')
             self.cla_data_file_path = os.path.join(img_dir_pre_path, 'EmoLabel', 'list_patition_label.txt')
             self.img_no_fl_folder_path = img_dir_pre_path + "_no_fl"
-            self.save_img_no_fl = True  # 是否存储未识别出人脸的图片，默认存于 $(img_dir_pre_path)_no_fl 文件夹
+            self.save_img_no_fl = False  # 是否存储未识别出人脸的图片，默认存于 $(img_dir_pre_path)_no_fl 文件夹
             if self.save_img_no_fl:
                 if not os.path.exists(self.img_no_fl_folder_path):
                     os.mkdir(self.img_no_fl_folder_path)
@@ -147,7 +147,7 @@ class RAF(data.Dataset):
             tuple: (image, target) where target is index of the target class.
         """
         if index >= self.__len__():
-            return None, None, None, None
+            return None, None
 
         if self.is_train:
             img, cla = self.train_data[index], self.train_classes[index]

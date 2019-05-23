@@ -1,12 +1,13 @@
+# coding=utf-8
 import torch
 
 
 class DataPrefetcher():
     """
-    ÓÃÓÚ½«loader½øÒ»²½·â×°£¬Ê¹ÓÃGPU¼ÓËÙÊý¾ÝµÄÔ¤¶ÁÈ¡ËÙ¶È¡£
-    ÎÊÌâ¼û£ºhttps://zhuanlan.zhihu.com/p/66145913?utm_source=qq&utm_medium=social&utm_oi=984715653122629632
+    å¯¹loaderè¿›è¡Œè¿›ä¸€æ­¥å°è£…ï¼ŒåŠ å¿«æ•°æ®çš„é¢„å¤„ç†èƒ½åŠ›
+    é—®é¢˜è¯¦è§ï¼šhttps://zhuanlan.zhihu.com/p/66145913?utm_source=qq&utm_medium=social&utm_oi=984715653122629632
 
-    Ê¾Àý£º
+    ç¤ºä¾‹ï¼š
     >>>training_data_loader = DataLoader(
     >>>    dataset=train_dataset,
     >>>    num_workers=opts.threads,
@@ -15,15 +16,15 @@ class DataPrefetcher():
     >>>    shuffle=True,
     >>>)
     >>>for iteration, batch in enumerate(training_data_loader, 1):
-    >>>    # ÑµÁ·´úÂë
+    >>>    # è®­ç»ƒä»£ç 
     >>>
-    >>>#-------------Éý¼¶ºó---------
+    >>>#-------------å‡çº§åŽ---------
     >>>
     >>>data, label = prefetcher.next()
     >>>iteration = 0
     >>>while data is not None:
     >>>    iteration += 1
-    >>>    # ÑµÁ·´úÂë
+    >>>    # è®­ç»ƒä»£ç 
     >>>    data, label = prefetcher.next()
 
     """
@@ -42,3 +43,10 @@ class DataPrefetcher():
         with torch.cuda.stream(self.stream):
             self.next_input = self.next_input.cuda(non_blocking=True)
             self.next_target = self.next_target.cuda(non_blocking=True)
+            
+    def next(self):
+        torch.cuda.current_stream().wait_stream(self.stream)
+        input = self.next_input
+        target = self.next_target
+        self.preload()
+        return input, target

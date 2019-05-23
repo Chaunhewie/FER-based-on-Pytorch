@@ -30,7 +30,7 @@ class FER2013(data.Dataset):
             PublicTest: anger:467, disgust:56, fear:496, happiness:895, sadness:653, surprise:415 and neutral:607
     """
 
-    def __init__(self, is_train=True, private_test=True, transform=None, target_type="fa",
+    def __init__(self, is_train=True, private_test=True, transform=None, target_type="ls",
                  img_dir_pre_path="data/fer2013", using_fl=False):
         name = 'FER2013'
         if is_train:
@@ -153,7 +153,7 @@ class FER2013(data.Dataset):
             tuple: (image, target) where target is index of the target class.
         """
         if index >= self.__len__():
-            return None, None, None, None
+            return None, None
 
         if self.is_train:
             img, cla = self.train_data[index], self.train_classes[index]

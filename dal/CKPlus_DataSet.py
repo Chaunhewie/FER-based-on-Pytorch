@@ -41,7 +41,7 @@ class CKPlus(data.Dataset):
         we choose images of 12 person, whose name is in self.test_people_names, for testing
     """
 
-    def __init__(self, is_train=True, transform=None, target_type="fa", k_folder=1, img_dir_pre_path="data/CK+",
+    def __init__(self, is_train=True, transform=None, target_type="ls", k_folder=1, img_dir_pre_path="data/CK+",
                  using_fl=False):
         if target_type == "fa":
             self.classes_map = {'anger': np.array([1., 0., 0., 0., 0., 0., 0.], dtype=float),
@@ -125,7 +125,7 @@ class CKPlus(data.Dataset):
             tuple: (image, target) where target is index of the target class.
         """
         if index >= self.__len__():
-            return None, None, None, None
+            return None, None
 
         if self.is_train:
             img, cla = self.train_data[index], self.train_classes[index]
