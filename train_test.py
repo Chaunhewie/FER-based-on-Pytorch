@@ -512,7 +512,7 @@ def pred_err_loop(current_lr, pred_err_dataset, pred_err_map):
     pred_err_epoch_max = opt.pred_err_epoch_max
     pred_err_dataset_temp = None
     while len(pred_err_dataset) > 0 and pred_err_epoch <= pred_err_epoch_max:
-        print("pred_err_loop:%d, err_num:%d, err_map:%s" % (pred_err_epoch, len(pred_err_dataset), pred_err_map))
+        print("pred_err_loop:%d, current_lr：%d, err_num:%d, err_map:%s" % (pred_err_epoch, current_lr, len(pred_err_dataset), pred_err_map))
         pred_err_epoch += 1
         pred_err_map = [0, 0, 0, 0, 0, 0, 0]
         train_loss = 0
