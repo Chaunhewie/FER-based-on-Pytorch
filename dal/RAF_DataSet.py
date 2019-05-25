@@ -30,7 +30,7 @@ class RAF(data.Dataset):
     """
 
     def __init__(self, is_train=True, transform=None, target_type="ls", img_dir_pre_path="data/RAF", using_fl=False):
-        name = 'CKPlus'
+        name = 'RAF'
         if is_train:
             name += "_" + 'train'
         else:
@@ -42,7 +42,7 @@ class RAF(data.Dataset):
         else:
             self.dump_self_path = 'Saved_DataSets/' + name + '.pickle'
            
-        if os.path.exists(self.dump_self_path):
+        if not os.path.exists(self.dump_self_path):
             self.load()
         else:
             if target_type == "fa":
@@ -67,7 +67,7 @@ class RAF(data.Dataset):
             self.img_aligned_data_dir_path = os.path.join(img_dir_pre_path, 'Image', 'aligned')
             self.cla_data_file_path = os.path.join(img_dir_pre_path, 'EmoLabel', 'list_patition_label.txt')
             self.img_no_fl_folder_path = img_dir_pre_path + "_no_fl"
-            self.save_img_no_fl = False  # 是否存储未识别出人脸的图片，默认存于 $(img_dir_pre_path)_no_fl 文件夹
+            self.save_img_no_fl = True  # 是否存储未识别出人脸的图片，默认存于 $(img_dir_pre_path)_no_fl 文件夹
             if self.save_img_no_fl:
                 if not os.path.exists(self.img_no_fl_folder_path):
                     os.mkdir(self.img_no_fl_folder_path)
@@ -101,9 +101,10 @@ class RAF(data.Dataset):
                             img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img_origin)
                             if face_box is None or face_landmarks is None:
                                 if self.save_img_no_fl:
+                                    print(file_type + "_" + file_index + ".jpg")
                                     img_origin = img_origin.convert("L")
                                     img_origin.save(
-                                        os.path.join(self.img_no_fl_folder_path, str(self.train_data_num) + "_train.png"))
+                                        os.path.join(self.img_no_fl_folder_path, file_type + "_" + file_index + ".jpg"))
                                 self.train_data_num -= 1
                                 continue
                         if using_fl:
@@ -123,9 +124,10 @@ class RAF(data.Dataset):
                             img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img_origin)
                             if face_box is None or face_landmarks is None:
                                 if self.save_img_no_fl:
+                                    print(file_type + "_" + file_index + ".jpg")
                                     img_origin = img_origin.convert("L")
                                     img_origin.save(
-                                        os.path.join(self.img_no_fl_folder_path, str(self.test_data_num) + "_test.png"))
+                                        os.path.join(self.img_no_fl_folder_path, file_type + "_" + file_index + ".jpg"))
                                 self.test_data_num -= 1
                                 continue
                         if using_fl:

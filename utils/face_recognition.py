@@ -26,7 +26,7 @@ def crop_face_area_and_get_landmarks(img, image_size=400):
     # 脸部关键点标记获取
     face_landmarks = face_recognition.face_landmarks(np.array(img))
     if len(face_landmarks) <= 0:
-        return img, None, None
+        return img, face_box, None
     face_landmarks = face_landmarks[0]
     # 扩充脸部区域
     for name, plot_list in face_landmarks.items():
@@ -48,7 +48,7 @@ def crop_face_area_and_get_landmarks(img, image_size=400):
     # 更新面部标记点的位置
     face_landmarks = face_recognition.face_landmarks(np.array(img))
     if len(face_landmarks) <= 0:
-        return img, None, None
+        return img, face_box, None
     face_landmarks = face_landmarks[0]
     return img, face_box, face_landmarks
 

@@ -10,7 +10,7 @@ from main_windows.css import *
 from main_windows.worker_threads import InitModelThread, FERWorkerThread, VirtualizeWorkerThread, VirtualizeBarDistributeThread
 
 DEBUG = False
-ENABLED_DATASET = ['CK+', 'JAFFE', 'FER2013']
+ENABLED_DATASET = ['CK+', 'JAFFE', 'FER2013', 'RAF']
 
 
 class FERWindow(QMainWindow):
@@ -262,42 +262,62 @@ class FERWindow(QMainWindow):
                 self.show_debug_label.setText("人脸框：" + str(face_box) + " 图像大小：" + str(img_origin.size()))
 
             # 绘制人脸定位图像
-            img_with_face_box = self.draw_img_with_face_box(img_origin.copy(), face_box)
-            self.show_res_label.setText("")
-            self.show_res_label.setPixmap(img_with_face_box)
+            if face_box is not None:
+                img_with_face_box = self.draw_img_with_face_box(img_origin.copy(), face_box)
+                self.show_res_label.setText("")
+                self.show_res_label.setPixmap(img_with_face_box)
+            else:
+                self.show_emotion_label.setText("预测表情：" + emotion + "(未识别到人脸区域)")
+                self.show_res_label.setText("")
+                self.show_res_label.setPixmap(img_origin)
             QApplication.processEvents()
 
             # 更新神经元节点的QLabel展示值
             for i in range(self.n_classes):
-                self.softmax_rate_labels[i].setText("%.2e" % softmax_rates[0][i])
-                self.softmax_rate_fl_labels[i].setText("%.2e" % softmax_rates[1][i])
-                self.softmax_rate_real_labels[i].setText("%.2e" % softmax_rates[2][i])
-                QApplication.processEvents()
+                if softmax_rates[0] is not None:
+                    self.softmax_rate_labels[i].setText("%.2e" % softmax_rates[0][i])
+                else:
+                    self.softmax_rate_labels[i].setText("--")
+
+                if softmax_rates[1] is not None:
+                    self.softmax_rate_fl_labels[i].setText("%.2e" % softmax_rates[1][i])
+                else:
+                    self.softmax_rate_fl_labels[i].setText("--")
+
+                if softmax_rates[2] is not None:
+                    self.softmax_rate_real_labels[i].setText("%.2e" % softmax_rates[2][i])
+                else:
+                    self.softmax_rate_real_labels[i].setText("--")
+            QApplication.processEvents()
 
             # 更新可视化中间层图像
             for i in range(self.n_features_conv):
-                images, images_fl = vir[0][i], vir[1][i]
-
-                self.vir_worker_threads[i] = VirtualizeWorkerThread(images, "ACCNN_" + self.dataset,
-                                                                    self.img_save_dir, i, False, vir_index)
-                self.vir_worker_threads[i].signal.connect(self.vir_worker_thread_slot)
-                self.vir_worker_threads[i].start()
-
-                self.vir_fl_worker_threads[i] = VirtualizeWorkerThread(images_fl, "ACCNN_" + self.dataset,
-                                                                       self.img_save_dir, i, True, vir_index)
-                self.vir_fl_worker_threads[i].signal.connect(self.vir_worker_thread_slot)
-                self.vir_fl_worker_threads[i].start()
+                images, images_fl = None, None
+                if vir[0] is not None:
+                    images = vir[0][i]
+                    self.vir_worker_threads[i] = VirtualizeWorkerThread(images, "ACCNN_" + self.dataset,
+                                                                        self.img_save_dir, i, False, vir_index)
+                    self.vir_worker_threads[i].signal.connect(self.vir_worker_thread_slot)
+                    self.vir_worker_threads[i].start()
+                if vir[1] is not None:
+                    images_fl = vir[1][i]
+                    self.vir_fl_worker_threads[i] = VirtualizeWorkerThread(images_fl, "ACCNN_" + self.dataset,
+                                                                           self.img_save_dir, i, True, vir_index)
+                    self.vir_fl_worker_threads[i].signal.connect(self.vir_worker_thread_slot)
+                    self.vir_fl_worker_threads[i].start()
 
             # 绘制条形图
-            self.vir_bar_distribute_thread = VirtualizeBarDistributeThread(self.model_controller.model.output_map,
-                                softmax_rates[0], "ACCNN_" + self.dataset, self.img_save_dir, False, vir_index)
-            self.vir_bar_distribute_thread.signal.connect(self.vir_bar_worker_thread_slot)
-            self.vir_bar_distribute_thread.start()
+            if softmax_rates[0] is not None:
+                self.vir_bar_distribute_thread = VirtualizeBarDistributeThread(self.model_controller.model.output_map,
+                                    softmax_rates[0], "ACCNN_" + self.dataset, self.img_save_dir, False, vir_index)
+                self.vir_bar_distribute_thread.signal.connect(self.vir_bar_worker_thread_slot)
+                self.vir_bar_distribute_thread.start()
 
-            self.vir_fl_bar_distribute_thread = VirtualizeBarDistributeThread(self.model_controller.model.output_map,
-                                softmax_rates[1], "ACCNN_" + self.dataset, self.img_save_dir, True, vir_index)
-            self.vir_fl_bar_distribute_thread.signal.connect(self.vir_bar_worker_thread_slot)
-            self.vir_fl_bar_distribute_thread.start()
+            if softmax_rates[1] is not None:
+                self.vir_fl_bar_distribute_thread = VirtualizeBarDistributeThread(self.model_controller.model.output_map,
+                                    softmax_rates[1], "ACCNN_" + self.dataset, self.img_save_dir, True, vir_index)
+                self.vir_fl_bar_distribute_thread.signal.connect(self.vir_bar_worker_thread_slot)
+                self.vir_fl_bar_distribute_thread.start()
         except:
             traceback.print_exc()
 
@@ -356,6 +376,8 @@ class FERWindow(QMainWindow):
         self.show_pic_label.setText("正在初始化...")
         self.show_res_label.setText("正在初始化...")
         self.dataset = dataset
+        QApplication.processEvents()
+
         self.init_model_thread = InitModelThread(self.model_root_pre_path, dataset=dataset,
                                                  tr_using_crop=self.tr_using_crop)  # 工作的线程
         self.init_model_thread.signal.connect(self.init_load_model_slot)

@@ -79,6 +79,8 @@ parser.add_argument('--lrd_s', default=2, type=int, help='learning rate decay st
 parser.add_argument('--lrd_r', default=0.9, type=float, help='learning rate decay rate')
 # 预测错误数据集进行训练的最大迭代次数，0为不迭代
 parser.add_argument('--pred_err_epoch_max', default=5, type=int, help='max epoch of predicted err dataset')
+# 预测错误数据集进行训练的学习率为正常训练学习率的递减比例： new_lr = lr / pred_err_lr_decay
+parser.add_argument('--pred_err_lr_decay', default=1, type=float, help='lr decays when in epoch of predicted err dataset')
 
 opt = parser.parse_args()
 
@@ -425,7 +427,7 @@ def train(epoch):
     Train_acc = cur_train_acc
     write_history('Train', epoch, cur_train_acc, train_loss / (batch_idx + 1), None)
 
-    pred_err_loop(current_lr/10, pred_err_dataset, pred_err_map)
+    pred_err_loop(current_lr/opt.pred_err_lr_decay, pred_err_dataset, pred_err_map)
     del pred_err_dataset
 
 

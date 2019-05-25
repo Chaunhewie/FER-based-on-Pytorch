@@ -72,14 +72,16 @@ class ACCNN(nn.Module):
         self.features_out = []
         self.best_acc = 0.
         self.best_acc_epoch = -1
-        if dataset == "CK+" or dataset == "CK+48":
+        if dataset == "CK+":
             self.output_map = {0:'生气', 1:'蔑视', 2:'恶心', 3:'害怕', 4:'开心', 5:'悲伤', 6:'惊讶'}
         elif dataset == 'FER2013':
             self.output_map = {0:'生气', 1:'恶心', 2:'害怕', 3:'开心', 4:'悲伤', 5:'惊讶', 6:'中性'}
         elif dataset == 'JAFFE':
             self.output_map = {0:'中性', 1:'开心', 2:'悲伤', 3:'惊讶', 4:'生气', 5:'恶心', 6:'害怕'}
+        elif dataset == 'RAF':
+            self.output_map = {0:'惊讶', 1:'害怕', 2:'恶心', 3:'开心', 4:'悲伤', 5:'生气', 6:'中性'}
         else:
-            assert 'dataset error: should be in ["JAFFE", "CK+48", "CK+", "FER2013"]'
+            assert 'dataset error: should be in ["JAFFE", "RAF", "CK+", "FER2013"]'
             self.output_map = {}
         if pre_trained:
             save_model_dir_name = 'Saved_Models'

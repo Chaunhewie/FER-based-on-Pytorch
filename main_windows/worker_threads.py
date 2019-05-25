@@ -65,7 +65,7 @@ class FERWorkerThread(QThread):
             img_arr = np.fromstring(img_str, dtype=np.uint8).reshape((h, w, self.QPixmap_Channels_Count))
             # 计时并进行表情识别
             start_time = time.time()
-            res = self.model_controller.fer_recognization(img_arr)
+            res = self.model_controller.two_channel_fer_recognization(img_arr)
             end_time = time.time()
             duration = round((end_time - start_time) * 1000, 2)
             # 回传

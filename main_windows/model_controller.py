@@ -45,36 +45,54 @@ class ModelController():
                 transforms.Normalize(IMG_MEAN, IMG_STD),
             ])
 
-    def fer_recognization(self, img_arr, weights_fl=0.4):
+    def two_channel_fer_recognization(self, img_arr, weights_fl=0.4):
         """
-        人脸识别
+        双通道人脸识别
         :param img_arr: img的numpy array对象
         :param weights_fl: 对于face_landmarks的权重，0~1之间
         :param resize_size:
         :return:
         """
+        degenerate_to_one_channel = False
+        self.clean_model_features_out()
         # 模型的输入准备
         start_time = time.time()
+
         img = Image.fromarray(img_arr).convert("L")
         img, face_box, face_landmarks = crop_face_area_and_get_landmarks(img)
-        landmarks_img = get_img_with_landmarks(img, face_landmarks)
+        if face_box is None or face_landmarks is None:
+            # 若未获取到人脸定位和关键标记点信息，则退化为单通道表情识别模型
+            degenerate_to_one_channel = True
+        else:
+            landmarks_img = get_img_with_landmarks(img, face_landmarks)
+            inputs_fl = self.transform_test(landmarks_img)
         inputs = self.transform_test(img)
-        inputs_fl = self.transform_test(landmarks_img)
-        self.clean_model_features_out()
         pre_exec_data_end_time = time.time()
         pre_exec_data_duration = round((pre_exec_data_end_time - start_time) * 1000, 2)
-        # 模型输入
-        outputs, vir = self.model_test(self.model, inputs)
-        outputs_fl, vir_fl = self.model_test(self.model_fl, inputs_fl)
 
-        # 对输出进行处理
-        real_outputs = (1 - weights_fl) * outputs.data + weights_fl * outputs_fl.data
+        # 模型输入
+        if degenerate_to_one_channel:
+            outputs, vir = self.model_test(self.model, inputs)
+            outputs_fl, vir_fl = None, None
+            real_outputs = outputs
+        else:
+            outputs, vir = self.model_test(self.model, inputs)
+            outputs_fl, vir_fl = self.model_test(self.model_fl, inputs_fl)
+            # 对输出进行处理
+            real_outputs = (1 - weights_fl) * outputs.data + weights_fl * outputs_fl.data
+
         _, predicted = torch.max(real_outputs, 1)  # 此处 1 表示维度
         predict_end_time = time.time()
         predict_duration = round((predict_end_time - pre_exec_data_end_time) * 1000, 2)
         # print(predicted)
-        softmax_rate = (
-            np.array(outputs.cpu().data[0]), np.array(outputs_fl.cpu().data[0]), np.array(real_outputs.cpu().data[0]))
+
+        if degenerate_to_one_channel:
+            softmax_rate = (
+                np.array(outputs.cpu().data[0]), None,
+                np.array(real_outputs.cpu().data[0]))
+        else:
+            softmax_rate = (
+                np.array(outputs.cpu().data[0]), np.array(outputs_fl.cpu().data[0]), np.array(real_outputs.cpu().data[0]))
         return (face_box, self.model.output_map[predicted.item()], softmax_rate, [vir, vir_fl], [pre_exec_data_duration,
                                                                                                  predict_duration])
 
