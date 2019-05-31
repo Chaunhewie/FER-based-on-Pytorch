@@ -41,6 +41,7 @@ class ModelController():
         else:
             self.transform_test = transforms.Compose([
                 transforms.Resize(int(self.model.input_size)),
+                transforms.CenterCrop(int(self.model.input_size)),
                 transforms.ToTensor(),
                 transforms.Normalize(IMG_MEAN, IMG_STD),
             ])
