@@ -78,13 +78,13 @@ def draw_bar_img(output_map, y, save_path="", plt_show=True, log_enabled=True,
     with plt_Lock:
         fig = plt.figure(figsize=(20, 20))  # figsize: width, height in inches
         ax = fig.add_subplot(111)
-        ax.set_ylabel(u"概率", fontsize=25)
-        ax.set_title(u"预测类别概率", fontsize=48)
+        ax.set_ylabel(u"概率", fontsize=45)
+        ax.set_title(u"预测类别概率", fontsize=50)
         ax.bar(range(len(emotions)), y, width=0.8, align="center", tick_label=emotions, color=bar_color)
         for tick in ax.xaxis.get_major_ticks():
-            tick.label.set_fontsize(25)
+            tick.label.set_fontsize(45)
         for tick in ax.yaxis.get_major_ticks():
-            tick.label.set_fontsize(15)
+            tick.label.set_fontsize(45)
         if len(save_path) > 0:
             plt.savefig(save_path)
             if log_enabled:
