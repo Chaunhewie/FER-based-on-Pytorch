@@ -247,7 +247,7 @@ def old_train(epoch):
     time_start = time.time()
     for batch_idx, (inputs, targets) in enumerate(train_loader):
         optimizer.zero_grad()
-        outputs = put_through_net(inputs, targets)
+        outputs, targets = put_through_net(inputs, targets)
         # print("outputs:", outputs)
         # print("targets:", targets)
         loss = criterion(outputs, targets)
@@ -300,7 +300,7 @@ def old_test(epoch):
     time_start = time.time()
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(test_loader):
-            outputs = put_through_net(inputs, targets)
+            outputs, targets = put_through_net(inputs, targets)
 
             loss = criterion(outputs, targets)
             private_test_loss += float(loss.data)
@@ -381,7 +381,7 @@ def train(epoch):
     inputs, targets = train_prefetcher.next()
     while inputs is not None:
         optimizer.zero_grad()
-        outputs = put_through_net(inputs, targets)
+        outputs, targets = put_through_net(inputs, targets)
         # print("outputs:", outputs)
         # print("targets:", targets)
         loss = criterion(outputs, targets)
@@ -447,7 +447,7 @@ def test(epoch):
         batch_idx = 0
         inputs, targets = test_prefetcher.next()
         while inputs is not None:
-            outputs = put_through_net(inputs, targets)
+            outputs, targets = put_through_net(inputs, targets)
 
             loss = criterion(outputs, targets)
             private_test_loss += float(loss.data)
@@ -530,7 +530,7 @@ def pred_err_loop(current_lr, pred_err_dataset, pred_err_map):
         inputs, targets = pred_err_prefetcher.next()
         while inputs is not None:
             optimizer.zero_grad()
-            outputs = put_through_net(inputs, targets)
+            outputs, targets = put_through_net(inputs, targets)
             loss = criterion(outputs, targets)
             loss.backward()
             utils.clip_gradient(optimizer, 2*current_lr)
@@ -584,7 +584,7 @@ def put_through_net(inputs, targets):
         inputs, targets = inputs.to(DEVICE), targets.to(DEVICE, torch.long)
     inputs, targets = Variable(inputs), Variable(targets)
     outputs = net(inputs)
-    return outputs
+    return outputs, targets
 
 
 def write_history(train_or_test, epoch, acc, loss, predictions):
